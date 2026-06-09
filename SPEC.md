@@ -4,49 +4,56 @@
 
 Sistema de controle financeiro pessoal baseado em temperatura do orcamento diario.
 
-O usuario cadastra renda e contas fixas. O sistema calcula quanto pode gastar por dia, acompanha gastos reais e redistribui saldo nao usado entre os dias restantes do mes.
+O usuario registra entradas, saidas fixas, gastos diarios, investimentos e saldo. O sistema calcula a performance do mes e ajuda a responder perguntas praticas como:
+
+- Posso comprar algo agora sem prejudicar minha economia?
+- Faz mais sentido pagar a vista ou parcelar?
+- Minha porcentagem investida no mes esta saudavel?
+- Como esta meu desempenho anual de entradas e economia?
+
+O projeto nao deve depender de cloud para funcionar. Dados financeiros reais devem ficar locais e fora do Git.
 
 ## MVP 1
 
-Objetivo: permitir cadastrar renda, contas fixas e consultar o orcamento diario basico.
+Objetivo: substituir a planilha atual com um lancador local e resumo mensal confiavel.
 
 Entregaveis:
 
-- `POST /api/setup/income`
-- `POST /api/setup/bills`
-- `GET /api/budget/today`
-- `GET /api/budget/month`
-- Calculadora de orcamento diario sem rollover
-- Testes unitarios da calculadora
+- `POST /api/ledger/entries`
+- `GET /api/months/{yyyy-MM}/summary`
+- Tipos de lancamento: `INCOME`, `FIXED_EXPENSE`, `DAILY_EXPENSE`, `INVESTMENT`, `BALANCE_ADJUSTMENT`
+- Calculo de entradas, saidas fixas, gasto diario, saida total, saldo e performance do mes
+- Calculo de economia/investimento mensal
+- Testes unitarios dos calculos
 
 Criterio de aceite:
 
-- Com renda de R$ 5.000, contas fixas de R$ 2.000 e mes de 30 dias, o budget diario deve ser R$ 100.
+- Dado um conjunto de lancamentos de um mes, o resumo deve bater com a planilha atual.
 
 ## MVP 2
 
-Objetivo: rollover diario.
+Objetivo: simulador de decisao de compra.
 
-- Fechamento manual de dia
-- Fechamento automatico diario
-- Redistribuicao do saldo nao gasto
-- Status `HEALTHY`, `WARNING`, `CRITICAL`, `EXCEEDED`
+- Compra a vista
+- Compra parcelada
+- Impacto na economia do mes
+- Impacto nos meses futuros
+- Recomendacao explicavel, sem "magica"
 
 ## MVP 3
 
-Objetivo: analytics mensal.
+Objetivo: visao anual.
 
-- Resumo por categoria
-- Total gasto
-- Projecao de sobra
-- Comparativo mensal
+- Total de entradas do ano
+- Total economizado/investido no ano
+- Porcentagem investida anual
+- Evolucao mensal
 
 ## MVP 4
 
-Objetivo: advisor financeiro.
+Objetivo: metas de investimento.
 
-- `POST /api/advisor/check`
-- Compra a vista
-- Compra parcelada
-- Tempo estimado para juntar dinheiro
-
+- Metas mensais
+- Metas anuais
+- Projecao de recuperacao apos compras maiores
+- Historico de performance contra meta

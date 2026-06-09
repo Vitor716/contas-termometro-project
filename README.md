@@ -8,9 +8,10 @@ Este repositorio nasce como um molde de projeto real, ainda simples, mas com dec
 
 - Backend: Kotlin 2.2, Java 21 e Spring Boot 4.
 - Arquitetura: monolito modular por pacotes de negocio.
-- Primeiro modo de execucao: local-first, sem cloud obrigatoria.
-- Persistencia: ainda nao escolhida no codigo. A decisao recomendada esta documentada em `docs/adrs/0002-persistencia-local-e-free-tier.md`.
-- Firebase: candidato para Auth/hosting/free tier, mas nao deve entrar antes de existir necessidade real de autenticacao ou sincronizacao.
+- Primeiro modo de execucao: local-first, sem cloud obrigatoria e sem dados pessoais versionados.
+- Persistencia recomendada para o MVP: arquivo local SQLite fora do Git.
+- GitHub: usado para versionar codigo, documentacao, migrations e exemplos anonimos. Nao sera usado como banco de dados financeiro.
+- Firebase: fica adiado. Pode entrar no futuro para Auth ou frontend, mas nao e dependencia do core.
 
 ## Modulos previstos
 
@@ -25,12 +26,11 @@ Este repositorio nasce como um molde de projeto real, ainda simples, mas com dec
 Pre-requisitos:
 
 - JDK 21+
-- Gradle instalado, ou adicionar Gradle Wrapper em um proximo passo
 
-Com Gradle instalado:
+Com o Gradle Wrapper:
 
-```bash
-gradle bootRun
+```powershell
+.\gradlew.bat bootRun
 ```
 
 Endpoint inicial:
@@ -41,8 +41,16 @@ curl http://localhost:8080/api/system/health
 
 ## Proximos passos
 
-1. Adicionar Gradle Wrapper.
-2. Escolher persistencia do MVP: PostgreSQL local com Docker ou SQLite local.
-3. Implementar MVP 1: setup de renda/contas fixas e consulta de budget diario.
-4. Decidir Firebase Auth somente quando houver frontend ou sincronizacao entre maquinas.
+1. Implementar persistencia SQLite local.
+2. Criar o modulo `ledger` para lancamentos financeiros.
+3. Implementar resumo mensal.
+4. Implementar simulador de compra no modulo `advisor`.
+5. Evoluir metas de investimento depois que os calculos mensais estiverem confiaveis.
 
+## Documentacao principal
+
+- [Visao de produto](docs/produto.md)
+- [Regras de calculo](docs/regras-de-calculo.md)
+- [Modelo de dados local](docs/modelo-de-dados.md)
+- [Roadmap](docs/roadmap.md)
+- [Arquitetura](docs/arquitetura.md)

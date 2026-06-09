@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposta.
+Substituida parcialmente por ADR 0005.
 
 ## Contexto
 
@@ -22,9 +22,10 @@ Mais simples para rodar em qualquer maquina, mas menos parecido com um backend w
 
 Free tier atraente, mas muda o desenho de persistencia e pode acoplar cedo demais o dominio ao provider.
 
-## Recomendacao
+## Recomendacao atual
 
-Para o MVP da API, usar PostgreSQL local com Docker e manter as configuracoes por variaveis de ambiente.
+Para o MVP, usar SQLite local. A decisao foi registrada na ADR 0005.
+
+PostgreSQL continua uma boa opcao futura se o projeto virar multiusuario, precisar de deploy web real ou exigir concorrencia maior.
 
 Firebase deve entrar primeiro para Auth, quando houver frontend ou sincronizacao entre maquinas. Firestore so deve ser escolhido se a experiencia principal virar client-first.
-

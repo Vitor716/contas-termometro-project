@@ -19,12 +19,13 @@ Objetivo: substituir a planilha atual com um lancador local e resumo mensal conf
 
 Entregaveis:
 
-- `POST /api/ledger/entries`
-- `GET /api/months/{yyyy-MM}/summary`
-- Tipos de lancamento: `INCOME`, `FIXED_EXPENSE`, `DAILY_EXPENSE`, `INVESTMENT`, `BALANCE_ADJUSTMENT`
+- `POST /api/lancamentos`
+- `GET /api/meses/{yyyy-MM}/resumo`
+- Tipos de lancamento: `ENTRADA`, `SAIDA_FIXA`, `GASTO_DIARIO`, `INVESTIMENTO`, `AJUSTE_SALDO`
 - Calculo de entradas, saidas fixas, gasto diario, saida total, saldo e performance do mes
 - Calculo de economia/investimento mensal
 - Testes unitarios dos calculos
+- Importacao CSV fica para MVP proprio, depois do fluxo manual estar confiavel
 
 Criterio de aceite:
 

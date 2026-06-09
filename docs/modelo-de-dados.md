@@ -44,58 +44,58 @@ data/
 
 ## Tabelas iniciais sugeridas
 
-### `ledger_entries`
+### `lancamentos`
 
 Livro principal de lancamentos.
 
 ```text
 id
-type
-description
-amount
-occurred_on
-reference_month
-category
-notes
-created_at
-updated_at
+tipo
+descricao
+valor
+data
+mes_referencia
+categoria
+observacao
+criado_em
+atualizado_em
 ```
 
 Tipos:
 
-- `INCOME`
-- `FIXED_EXPENSE`
-- `DAILY_EXPENSE`
-- `INVESTMENT`
-- `BALANCE_ADJUSTMENT`
+- `ENTRADA`
+- `SAIDA_FIXA`
+- `GASTO_DIARIO`
+- `INVESTIMENTO`
+- `AJUSTE_SALDO`
 
-### `monthly_targets`
+### `metas_mensais`
 
 Metas configuraveis por mes.
 
 ```text
 id
-reference_month
-investment_target_rate
-minimum_daily_budget
-created_at
-updated_at
+mes_referencia
+percentual_meta_investimento
+orcamento_diario_minimo
+criado_em
+atualizado_em
 ```
 
-### `purchase_simulations`
+### `simulacoes_compra`
 
 Historico opcional de simulacoes.
 
 ```text
 id
-reference_month
-description
-price
-payment_mode
-installments
-decision
-reason
-created_at
+mes_referencia
+descricao
+valor
+forma_pagamento
+parcelas
+decisao
+motivo
+criado_em
 ```
 
 ## Sobre usar Git como banco
@@ -110,4 +110,3 @@ Git e bom para versionar texto e codigo. Para dados financeiros pessoais, ele cr
 - repositorios remotos mudam o modelo de privacidade.
 
 Se quiser versionar dados futuramente, considerar uma exportacao criptografada local e manual, nunca dados abertos.
-

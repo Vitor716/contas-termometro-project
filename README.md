@@ -16,11 +16,13 @@ Este repositorio nasce como um molde de projeto real, ainda simples, mas com dec
 
 ## Modulos previstos
 
-- `identity`: usuario, autenticacao e integracao futura com Firebase Auth.
-- `setup`: renda mensal, contas fixas e preferencias financeiras.
-- `budget`: calculo do orcamento diario e status do termometro.
-- `advisor`: respostas para "posso comprar?" e simulacoes.
-- `shared`: contratos e tipos compartilhados de baixo acoplamento.
+- `identidade`: usuario, autenticacao e integracao futura com Firebase Auth.
+- `lancamentos`: entradas, saidas fixas, gastos diarios, investimentos e ajustes de saldo.
+- `importacao`: leitura e pre-visualizacao de CSVs antes de gravar lancamentos.
+- `configuracao`: categorias, metas e preferencias financeiras.
+- `orcamento`: resumo mensal/anual, calculos do termometro e performance.
+- `consultor`: respostas para "posso comprar?" e simulacoes.
+- `compartilhado`: contratos e tipos compartilhados de baixo acoplamento.
 
 ## Rodando localmente
 
@@ -37,15 +39,15 @@ Com o Gradle Wrapper:
 Endpoint inicial:
 
 ```bash
-curl http://localhost:8080/api/system/health
+curl http://localhost:8080/api/sistema/saude
 ```
 
 ## Proximos passos
 
 1. Implementar persistencia SQLite local.
-2. Criar o modulo `ledger` para lancamentos financeiros.
+2. Criar o modulo `lancamentos` para lancamentos financeiros.
 3. Implementar resumo mensal.
-4. Implementar simulador de compra no modulo `advisor`.
+4. Implementar simulador de compra no modulo `consultor`.
 5. Evoluir metas de investimento depois que os calculos mensais estiverem confiaveis.
 
 ## Documentacao principal

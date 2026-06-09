@@ -51,6 +51,7 @@ Primeiras telas:
 - Dashboard mensal.
 - Lancamento rapido.
 - Lista de lancamentos do mes.
+- Importacao CSV.
 - Simulador de compra.
 - Resumo anual.
 
@@ -78,4 +79,3 @@ Diretrizes:
 - cores de status com significado financeiro;
 - evitar animacoes e excesso visual;
 - priorizar legibilidade dos numeros.
-

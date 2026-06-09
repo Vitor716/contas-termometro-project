@@ -6,12 +6,13 @@ O projeto comeca como monolito modular. A decisao reduz custo operacional e evit
 
 ## Boundaries
 
-- `identity`: autenticacao, dono dos dados e integracao futura com Firebase Auth.
-- `ledger`: livro de lancamentos financeiros. Sera o modulo central do MVP.
-- `setup`: preferencias, categorias e metas.
-- `budget`: calculos diarios, status do termometro e resumos mensais/anuais.
-- `advisor`: simulacoes e recomendacoes.
-- `shared`: tipos pequenos e estaveis, sem regra de negocio.
+- `identidade`: autenticacao, dono dos dados e integracao futura com Firebase Auth.
+- `lancamentos`: livro de lancamentos financeiros. Sera o modulo central do MVP.
+- `importacao`: leitura de arquivos externos, pre-visualizacao e confirmacao antes de gravar.
+- `configuracao`: preferencias, categorias e metas.
+- `orcamento`: calculos diarios, status do termometro e resumos mensais/anuais.
+- `consultor`: simulacoes e recomendacoes.
+- `compartilhado`: tipos pequenos e estaveis, sem regra de negocio.
 
 ## Regra de dependencia
 
@@ -28,19 +29,19 @@ O diretorio `data/` nao deve ser versionado. Migrations, exemplos anonimos e fix
 ## Fluxo inicial
 
 ```text
-POST /api/ledger/entries
+POST /api/lancamentos
         |
         v
-ledger salva lancamento local
+lancamentos salva lancamento local
         |
         v
-GET /api/months/{yyyy-MM}/summary
+GET /api/meses/{yyyy-MM}/resumo
         |
         v
-budget calcula resumo mensal sob demanda
+orcamento calcula resumo mensal sob demanda
         |
         v
-advisor usa o resumo para simular compras
+consultor usa o resumo para simular compras
 ```
 
 ## Decisao importante
@@ -51,7 +52,7 @@ O projeto precisa primeiro provar que:
 
 - os lancamentos representam bem a planilha;
 - os resumos batem com os calculos atuais;
-- o advisor explica decisoes de compra de forma util;
+- o consultor explica decisoes de compra de forma util;
 - os dados reais nao vazam para Git.
 
 ## Frontend

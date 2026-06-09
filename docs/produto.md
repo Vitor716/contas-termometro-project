@@ -63,7 +63,7 @@ Ficam fora no inicio:
 - Performance do mes: resultado entre entradas, saidas e economia planejada.
 - Saldo: dinheiro restante ou saldo informado para reconciliar com a realidade.
 
-## Pergunta central do advisor
+## Pergunta central do consultor
 
 "Essa compra cabe na minha vida financeira sem atrapalhar minha economia?"
 
@@ -76,4 +76,3 @@ A resposta deve considerar:
 - meta de economia;
 - impacto da compra no mes atual;
 - impacto das parcelas nos meses futuros.
-

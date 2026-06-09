@@ -4,63 +4,65 @@ Este documento define as formulas iniciais. Se a planilha atual usar outra formu
 
 ## Tipos de lancamento
 
-- `INCOME`: entrada de dinheiro.
-- `FIXED_EXPENSE`: saida fixa.
-- `DAILY_EXPENSE`: gasto diario/debito.
-- `INVESTMENT`: economia, reserva ou investimento.
-- `BALANCE_ADJUSTMENT`: ajuste manual de saldo para reconciliar com banco/carteira.
+- `ENTRADA`: entrada de dinheiro.
+- `SAIDA_FIXA`: saida fixa.
+- `GASTO_DIARIO`: gasto diario/debito.
+- `INVESTIMENTO`: economia, reserva ou investimento.
+- `AJUSTE_SALDO`: ajuste manual de saldo para reconciliar com banco/carteira.
 
 ## Resumo mensal
 
 Para um mes `M`:
 
 ```text
-totalIncome = soma(INCOME)
-fixedExpenseTotal = soma(FIXED_EXPENSE)
-dailyExpenseTotal = soma(DAILY_EXPENSE)
-investmentTotal = soma(INVESTMENT)
-cashExpenseTotal = fixedExpenseTotal + dailyExpenseTotal
-totalOutflow = fixedExpenseTotal + dailyExpenseTotal + investmentTotal
-monthBalance = totalIncome - totalOutflow + soma(BALANCE_ADJUSTMENT)
+totalEntradas = soma(ENTRADA)
+totalSaidasFixas = soma(SAIDA_FIXA)
+totalGastoDiario = soma(GASTO_DIARIO)
+totalInvestido = soma(INVESTIMENTO)
+saidaSemInvestimento = totalSaidasFixas + totalGastoDiario
+saidaTotal = totalSaidasFixas + totalGastoDiario + totalInvestido
+saldoMes = totalEntradas - saidaTotal + soma(AJUSTE_SALDO)
 ```
+
+Os nomes internos, endpoints e documentos devem usar a linguagem publica em portugues.
 
 ## Economia mensal
 
 Existem duas leituras uteis:
 
 ```text
-investmentRateOnIncome = investmentTotal / totalIncome
-freeCashAfterExpenses = totalIncome - fixedExpenseTotal - dailyExpenseTotal
+percentualInvestidoSobreEntradas = totalInvestido / totalEntradas
+sobraDepoisDeGastos = totalEntradas - totalSaidasFixas - totalGastoDiario
 ```
 
-`investmentRateOnIncome` mostra quanto do dinheiro que entrou foi investido.
+`percentualInvestidoSobreEntradas` mostra quanto do dinheiro que entrou foi investido.
 
-`freeCashAfterExpenses` mostra sobra operacional antes de decidir investir, comprar ou deixar parado.
+`sobraDepoisDeGastos` mostra sobra operacional antes de decidir investir, comprar ou deixar parado.
 
 ## Performance do mes
 
 Performance inicial recomendada:
 
 ```text
-targetInvestment = totalIncome * monthlyInvestmentTargetRate
-investmentGap = investmentTotal - targetInvestment
-performanceRate = investmentTotal / targetInvestment
+metaInvestimento = totalEntradas * percentualMetaInvestimentoMensal
+diferencaInvestimento = totalInvestido - metaInvestimento
+percentualPerformance = totalInvestido / metaInvestimento
 ```
 
 Interpretacao:
 
-- `performanceRate >= 1`: meta batida.
-- `performanceRate entre 0.8 e 1`: perto da meta.
-- `performanceRate < 0.8`: abaixo da meta.
+- `percentualPerformance >= 1`: meta batida.
+- `percentualPerformance entre 0.8 e 1`: perto da meta.
+- `percentualPerformance < 0.8`: abaixo da meta.
 
 ## Diario
 
 O diario representa gasto variavel do mes.
 
 ```text
-dailyBudget = (totalIncome - fixedExpenseTotal - targetInvestment) / daysInMonth
-dailyExpenseTotal = soma(DAILY_EXPENSE)
-dailyRemaining = dailyBudget * dayOfMonth - dailyExpenseTotal
+orcamentoDiario = (totalEntradas - totalSaidasFixas - metaInvestimento) / diasDoMes
+totalGastoDiario = soma(GASTO_DIARIO)
+diarioRestante = orcamentoDiario * diaDoMes - totalGastoDiario
 ```
 
 Essa regra permite comparar o gasto variavel acumulado com o limite esperado ate o dia atual.
@@ -70,9 +72,9 @@ Essa regra permite comparar o gasto variavel acumulado com o limite esperado ate
 Para um ano `Y`:
 
 ```text
-annualIncome = soma(totalIncome dos meses)
-annualInvestment = soma(investmentTotal dos meses)
-annualInvestmentRate = annualInvestment / annualIncome
+entradasAnuais = soma(totalEntradas dos meses)
+investimentoAnual = soma(totalInvestido dos meses)
+percentualInvestidoAnual = investimentoAnual / entradasAnuais
 ```
 
 ## Decisao de compra a vista
@@ -87,17 +89,17 @@ Entrada:
 Regra inicial:
 
 ```text
-cashAfterPurchase = freeCashAfterExpenses - price
-investmentAfterPurchase = investmentTotal
-targetInvestment = totalIncome * monthlyInvestmentTargetRate
-canBuyCash = cashAfterPurchase >= 0 and investmentAfterPurchase >= targetInvestment
+sobraDepoisDaCompra = sobraDepoisDeGastos - valorCompra
+investimentoDepoisDaCompra = totalInvestido
+metaInvestimento = totalEntradas * percentualMetaInvestimentoMensal
+podeComprarAVista = sobraDepoisDaCompra >= 0 and investimentoDepoisDaCompra >= metaInvestimento
 ```
 
 Se a compra for paga usando dinheiro que iria para investimento:
 
 ```text
-investmentAfterPurchase = investmentTotal - max(0, price - freeCashAfterExpenses)
-canBuyCash = investmentAfterPurchase >= targetInvestment
+investimentoDepoisDaCompra = totalInvestido - max(0, valorCompra - sobraDepoisDeGastos)
+podeComprarAVista = investimentoDepoisDaCompra >= metaInvestimento
 ```
 
 A resposta deve explicar qual interpretacao foi usada.
@@ -115,10 +117,10 @@ Entrada:
 Regra inicial:
 
 ```text
-installmentValue = price / installments
-futureFixedExpenseTotal = fixedExpenseTotal + installmentValue
-futureDailyBudget = (expectedIncome - futureFixedExpenseTotal - targetInvestment) / daysInMonth
-canInstall = futureDailyBudget >= minimumDailyBudget
+valorParcela = valorCompra / parcelas
+saidasFixasFuturas = totalSaidasFixas + valorParcela
+orcamentoDiarioFuturo = (entradaEsperada - saidasFixasFuturas - metaInvestimento) / diasDoMes
+podeParcelar = orcamentoDiarioFuturo >= orcamentoDiarioMinimo
 ```
 
 O sistema deve mostrar:
@@ -133,4 +135,3 @@ O sistema deve mostrar:
 - Valores monetarios devem ter 2 casas decimais.
 - Arredondamento padrao: `HALF_UP`.
 - Percentuais podem ter 2 casas decimais.
-

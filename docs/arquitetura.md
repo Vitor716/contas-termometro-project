@@ -53,3 +53,9 @@ O projeto precisa primeiro provar que:
 - os resumos batem com os calculos atuais;
 - o advisor explica decisoes de compra de forma util;
 - os dados reais nao vazam para Git.
+
+## Frontend
+
+O frontend inicial deve ficar dentro do mesmo projeto Spring Boot, servido como arquivos estaticos ou templates simples.
+
+Frameworks como Angular, Vue, React ou Next.js ficam fora do MVP. Eles podem ser revisitados se a interface crescer a ponto de exigir estado complexo, roteamento client-side ou componentes muito interativos.

@@ -12,6 +12,7 @@ Este repositorio nasce como um molde de projeto real, ainda simples, mas com dec
 - Persistencia recomendada para o MVP: arquivo local SQLite fora do Git.
 - GitHub: usado para versionar codigo, documentacao, migrations e exemplos anonimos. Nao sera usado como banco de dados financeiro.
 - Firebase: fica adiado. Pode entrar no futuro para Auth ou frontend, mas nao e dependencia do core.
+- Frontend inicial: simples, servido pelo proprio Spring Boot, sem Angular/Vue/React no MVP.
 
 ## Modulos previstos
 
@@ -54,3 +55,4 @@ curl http://localhost:8080/api/system/health
 - [Modelo de dados local](docs/modelo-de-dados.md)
 - [Roadmap](docs/roadmap.md)
 - [Arquitetura](docs/arquitetura.md)
+- [Frontend](docs/frontend.md)

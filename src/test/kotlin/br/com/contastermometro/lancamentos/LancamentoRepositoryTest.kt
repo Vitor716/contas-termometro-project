@@ -1,5 +1,9 @@
 package br.com.contastermometro.lancamentos
 
+import br.com.contastermometro.lancamentos.enums.StatusLancamento
+import br.com.contastermometro.lancamentos.enums.TipoLancamento
+import br.com.contastermometro.lancamentos.model.Lancamento
+import br.com.contastermometro.lancamentos.repository.LancamentoRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

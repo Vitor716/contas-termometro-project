@@ -1,5 +1,7 @@
-package br.com.contastermometro.lancamentos
+package br.com.contastermometro.lancamentos.model
 
+import br.com.contastermometro.lancamentos.enums.StatusLancamento
+import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

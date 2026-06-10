@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:contas-termometro.db
+    username: ""
+    password: ""
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 0
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+app:
+  environment: local
+

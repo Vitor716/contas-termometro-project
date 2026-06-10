@@ -1,0 +1,4 @@
+Escreva todas as mensagens de commit exclusivamente em português.
+Use o formato de Conventional Commits, seguindo a estrutura: `<tipo>[escopo opcional]: <descrição>`. Exemplos de tipos incluem `feat` para novas funcionalidades, `fix` para correções de bugs, `docs` para documentação, `style` para formatação, `refactor` para refatoração, `test` para testes, e `chore` para tarefas de manutenção. Certifique-se de que cada mensagem seja clara e concisa, descrevendo a mudança realizada.
+Use o modo imperativo: "Adiciona funciolidade de login" em vez de "Adicionada funcionalidade de login" ou "Adicionando funcionalidade de login". Isso ajuda a manter a consistência e clareza nas mensagens de commit.
+Mantenha a linha de assunto com menos de 50 caracteres para garantir que seja facilmente legível em ferramentas de controle de versão. Se necessário, use o corpo do commit para fornecer detalhes adicionais sobre a mudança.

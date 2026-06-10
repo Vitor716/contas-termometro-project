@@ -19,13 +19,13 @@ Objetivo: deixar o projeto pronto para desenvolvimento local seguro.
 
 Entregaveis:
 
-- Configurar SQLite local.
-- Garantir que `data/` fique fora do Git.
+- Configurar SQLite local. ✅
+- Garantir que `data/` fique fora do Git. ✅
 - Criar migrations iniciais.
-- Criar estrutura de pacotes em portugues.
-- Criar perfil `local`.
-- Criar endpoint `GET /api/sistema/saude`.
-- Criar fixtures anonimas para testes.
+- Criar estrutura de pacotes em portugues. ✅
+- Criar perfil `local`. ✅
+- Criar endpoint `GET /api/sistema/saude`. ✅
+- Criar fixtures anonimas para testes. ✅
 
 Tarefas:
 

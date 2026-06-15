@@ -1,6 +1,7 @@
 package br.com.contastermometro.lancamentos.dto
 
 import br.com.contastermometro.lancamentos.enums.TipoLancamento
+import br.com.contastermometro.lancamentos.model.Lancamento
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -14,4 +15,29 @@ data class LancamentoResponse(
     var categoria: String? = null,
     var observacao: String? = null,
 )
+
+fun Lancamento.toResponse(): LancamentoResponse {
+    return LancamentoResponse(
+        id = id ?: 0,
+        tipo = tipo,
+        descricao = descricao,
+        valor = BigDecimal(valorCentavos).movePointLeft(2),
+        data = LocalDate.parse(dataLancamento),
+        mesReferencia = mesReferencia,
+        categoria = categoria,
+        observacao = observacao,
+    )
+}
+
+fun LancamentoRequest.toModel(): Lancamento {
+    return Lancamento(
+        tipo = this.tipo,
+        descricao = this.descricao,
+        valorCentavos = this.valor.movePointRight(2).toLong(),
+        dataLancamento = this.data.toString(),
+        mesReferencia = mesReferencia,
+        categoria = categoria,
+        observacao = observacao,
+    )
+}
 

@@ -54,11 +54,11 @@ Modulos envolvidos:
 Endpoints:
 
 ```text
-POST /api/lancamentos
-GET /api/lancamentos?mes=2026-06
-GET /api/lancamentos/{id}
+POST /api/lancamentos ✅
+GET /api/lancamentos?mes=2026-06 ✅
+GET /api/lancamentos/{id} ✅
 PUT /api/lancamentos/{id}
-DELETE /api/lancamentos/{id}
+DELETE /api/lancamentos/{id} ✅
 ```
 
 Tipos de lancamento:

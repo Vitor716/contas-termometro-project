@@ -22,7 +22,6 @@ data class LancamentoRequest(
     @field:NotNull
     val data: LocalDate,
 
-    // yyyy-MM
     @field:NotBlank
     @field:Pattern(regexp = "^\\d{4}-\\d{2}$")
     val mesReferencia: String,
@@ -31,4 +30,3 @@ data class LancamentoRequest(
 
     val observacao: String? = null,
 )
-

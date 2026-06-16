@@ -38,4 +38,18 @@ class LancamentosServiceImpl(
         val lancamento = buscar(id)
         repository.deleteById(lancamento.id)
     }
+
+    override fun editar(id: Long, req: LancamentoRequest): LancamentoResponse {
+        val updatedEntity = repository.findById(id).orElseThrow { LancamentoNaoEncontradoException("Lançamento com id $id não encontrado.") }.apply {
+            descricao = req.descricao
+            valorCentavos = req.valor.movePointRight(2).toLong()
+            dataLancamento = req.data.toString()
+            mesReferencia = req.mesReferencia
+            categoria = req.categoria
+            observacao = req.observacao
+        }
+
+        val saved = repository.save(updatedEntity)
+        return saved.toResponse()
+    }
 }

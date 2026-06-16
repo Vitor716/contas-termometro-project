@@ -38,4 +38,10 @@ class LancamentosController(
         lancamentosService.remover(id)
         return ResponseEntity.noContent().build()
     }
+
+    @PutMapping("/{id}")
+    fun editar(@PathVariable id: Long, @Valid @RequestBody req: LancamentoRequest): ResponseEntity<LancamentoResponse> {
+        val updated = lancamentosService.editar(id, req)
+        return ResponseEntity.ok(updated)
+    }
 }

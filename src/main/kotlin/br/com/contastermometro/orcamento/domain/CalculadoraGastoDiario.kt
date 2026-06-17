@@ -1,12 +1,15 @@
 package br.com.contastermometro.orcamento.domain
 
 import br.com.contastermometro.lancamentos.dto.LancamentoResponse
+import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import java.math.BigDecimal
 
 object CalculadoraGastoDiario {
 
     fun calcularTotalGastoDiario(lancamentos: List<LancamentoResponse>): BigDecimal {
-        TODO("Implementar soma de lançamentos do tipo GASTO_DIARIO")
+        return lancamentos
+            .filter { it.tipo == TipoLancamento.GASTO_DIARIO }
+            .sumOf { it.valor }
     }
 
     /**
@@ -18,7 +21,7 @@ object CalculadoraGastoDiario {
         diaAtual: Int,
         totalDiasDoMes: Int
     ): BigDecimal {
-        TODO("Implementar: (Limite Mensal / Total de Dias) * Dia Atual")
+        return limiteMensalGastoDiario / totalDiasDoMes.toBigDecimal()
     }
 
     /**
@@ -28,6 +31,6 @@ object CalculadoraGastoDiario {
         limiteMensalGastoDiario: BigDecimal,
         totalGastoDiarioAteHoje: BigDecimal
     ): BigDecimal {
-        TODO("Implementar: Limite Mensal - O que já foi gasto")
+        return limiteMensalGastoDiario - totalGastoDiarioAteHoje
     }
 }

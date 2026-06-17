@@ -82,8 +82,8 @@ Campos minimos:
 
 Tarefas:
 
-- Criar entidade `Lancamento`.
-- Criar enum `TipoLancamento`.
+- Criar entidade `Lancamento`. 
+- Criar enum `TipoLancamento`. 
 - Criar repository.
 - Criar service com validacoes.
 - Criar controller.
@@ -116,17 +116,17 @@ GET /api/meses/{yyyy-MM}/resumo
 
 Resposta deve conter:
 
-- soma das entradas;
-- soma das saidas fixas;
-- total de gasto diario;
-- total investido/economizado;
-- saida total;
-- saldo do mes;
-- porcentagem investida sobre entradas;
-- meta de investimento do mes;
-- performance contra meta;
-- gasto diario esperado ate o dia atual;
-- gasto diario restante.
+- soma das entradas; ✅
+- soma das saidas fixas; ✅
+- total de gasto diario; ✅
+- total investido/economizado; ✅
+- saida total; ✅
+- saldo do mes; ✅
+- porcentagem investida sobre entradas; ✅
+- meta de investimento do mes; ✅
+- performance contra meta; ✅
+- gasto diario esperado ate o dia atual; ✅
+- gasto diario restante. ✅
 
 Tarefas:
 

@@ -7,7 +7,7 @@ import br.com.contastermometro.orcamento.domain.CalculadoraInvestimentos
 import br.com.contastermometro.orcamento.dto.ResumoMensal
 import br.com.contastermometro.orcamento.service.OrcamentoService
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.YearMonth
 
 @Service
@@ -15,31 +15,39 @@ class OrcamentoServiceImpl (
     private val lancamentosService: LancamentosService
 ) : OrcamentoService {
 
-    override fun gerarResumoMensal(mesRaw: YearMonth): ResumoMensal {
-        val lancamentos = lancamentosService.listarPorMes(mesRaw)
+    override fun gerarResumoMensal(mesRaw: LocalDate): ResumoMensal {
+        val yearMonth = YearMonth.from(mesRaw)
+        val lancamentos = lancamentosService.listarPorMes(yearMonth)
 
         val entradas = CalculadoraFluxoCaixa.calcularSomaEntradas(lancamentos)
         val saidasFixas = CalculadoraFluxoCaixa.calcularSomaSaidasFixas(lancamentos)
-//        val gastoDiarioTotal = CalculadoraGastoDiario.calcularTotalGastoDiario(lancamentos)
-//        val investido = CalculadoraInvestimentos.calcularTotalInvestido(lancamentos)
-//
-//        val saidaTotal = saidasFixas + gastoDiarioTotal
-//        val saldo = CalculadoraFluxoCaixa.calcularSaldoDoMes(entradas, saidaTotal)
-//
-//        val performance = CalculadoraInvestimentos.calcularPerformanceContraMeta(entradas, investido)
+
+        val totalInvestido = CalculadoraInvestimentos.calcularTotalInvestido(lancamentos)
+        val porcentagemInvestida = CalculadoraInvestimentos.calcularPorcentagemInvestida(totalInvestido, entradas)
+        val metaInvestimento = CalculadoraInvestimentos.buscarMetaDeInvestimento()
+        val performance = CalculadoraInvestimentos.calcularPerformanceContraMeta(porcentagemInvestida, metaInvestimento)
+
+        val gastoDiarioTotal = CalculadoraGastoDiario.calcularTotalGastoDiario(lancamentos)
+
+        val saidaTotal = CalculadoraFluxoCaixa.calcularSaidaTotal(saidasFixas, gastoDiarioTotal)
+        val saldo = CalculadoraFluxoCaixa.calcularSaldoDoMes(entradas, saidaTotal)
+        val limiteMensalGastoDiario = saldo - totalInvestido
+
+        val gastoDiarioEsperadoAtual = CalculadoraGastoDiario.calcularGastoDiarioEsperadoAteHoje(limiteMensalGastoDiario, mesRaw.dayOfMonth, mesRaw.lengthOfMonth())
+        val gastoDiarioRestante = CalculadoraGastoDiario.calcularGastoDiarioRestante(limiteMensalGastoDiario, gastoDiarioTotal)
 
         return ResumoMensal(
             somaEntradas =  entradas,
             somaSaidasFixas = saidasFixas,
-            totalGastoDiario =  BigDecimal.ZERO,
-            totalInvestido =  BigDecimal.ZERO,
-            saidaTotal =  BigDecimal.ZERO,
-            saldoMes =  BigDecimal.ZERO,
-            porcentagemInvestida =  BigDecimal.ZERO,
-            metaInvestimento =  BigDecimal.ZERO,
-            performanceContraMeta =  BigDecimal.ZERO,
-            gastoDiarioEsperadoAtual =  BigDecimal.ZERO,
-            gastoDiarioRestante =  BigDecimal.ZERO
+            totalGastoDiario =  gastoDiarioTotal,
+            totalInvestido =  totalInvestido,
+            saidaTotal =  saidaTotal,
+            saldoMes =  saldo,
+            porcentagemInvestida =  porcentagemInvestida,
+            metaInvestimento =  metaInvestimento,
+            performanceContraMeta =  performance,
+            gastoDiarioEsperadoAtual =  gastoDiarioEsperadoAtual,
+            gastoDiarioRestante =  gastoDiarioRestante
         )
     }
 }

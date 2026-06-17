@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.time.YearMonth
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("api/orcamento")
@@ -18,8 +18,8 @@ class OrcamentoController (
 
     @GetMapping()
     fun gerarResumoMensal(
-        @DateTimeFormat(pattern = "yyyy-MM")
-        @RequestParam("mes") mesRaw: YearMonth): ResponseEntity<ResumoMensal> {
+        @DateTimeFormat(pattern = "yyyy-MM-dd")
+        @RequestParam("mes") mesRaw: LocalDate): ResponseEntity<ResumoMensal> {
      return ResponseEntity.ok(orcamentoService.gerarResumoMensal(mesRaw));
     }
 }

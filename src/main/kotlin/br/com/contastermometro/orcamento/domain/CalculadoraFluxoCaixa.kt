@@ -19,10 +19,10 @@ object CalculadoraFluxoCaixa {
     }
 
     fun calcularSaidaTotal(saidasFixas: BigDecimal, gastoDiarioTotal: BigDecimal): BigDecimal {
-        TODO("Implementar soma total de saídas")
+        return saidasFixas + gastoDiarioTotal
     }
 
     fun calcularSaldoDoMes(somaEntradas: BigDecimal, saidaTotal: BigDecimal): BigDecimal {
-        TODO("Implementar cálculo do saldo final (Entradas - Saídas Totais)")
+        return somaEntradas - saidaTotal
     }
 }

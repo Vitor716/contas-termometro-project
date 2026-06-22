@@ -18,11 +18,11 @@ object CalculadoraFluxoCaixa {
             .sumOf { it.valor }
     }
 
-    fun calcularSaidaTotal(saidasFixas: BigDecimal, gastoDiarioTotal: BigDecimal): BigDecimal {
-        return saidasFixas + gastoDiarioTotal
+    fun calcularSaidaTotal(saidasFixas: BigDecimal, gastoDiarioTotal: BigDecimal, totalInvestido: BigDecimal): BigDecimal {
+        return saidasFixas + gastoDiarioTotal + totalInvestido
     }
 
-    fun calcularSaldoDoMes(somaEntradas: BigDecimal, saidaTotal: BigDecimal): BigDecimal {
+    fun calcularSaldoDoMes(somaEntradas: BigDecimal, saidaTotal: BigDecimal, totalInvestido: BigDecimal): BigDecimal {
         return somaEntradas - saidaTotal
     }
 }

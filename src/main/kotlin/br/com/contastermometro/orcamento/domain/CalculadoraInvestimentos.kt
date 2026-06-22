@@ -3,6 +3,7 @@ package br.com.contastermometro.orcamento.domain
 import br.com.contastermometro.lancamentos.dto.LancamentoResponse
 import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 object CalculadoraInvestimentos {
 
@@ -13,14 +14,16 @@ object CalculadoraInvestimentos {
     }
 
     fun calcularPorcentagemInvestida(totalInvestido: BigDecimal, somaEntradas: BigDecimal): BigDecimal {
-        return totalInvestido / somaEntradas * BigDecimal(100)
+        val retorno = somaEntradas.compareTo(BigDecimal.ZERO)
+        if(retorno == 0) return BigDecimal.ZERO
+        return totalInvestido.divide(somaEntradas, 2, RoundingMode.HALF_UP)
     }
 
     fun buscarMetaDeInvestimento(): BigDecimal {
-        return BigDecimal(20)
+        return BigDecimal("0.20")
     }
 
     fun calcularPerformanceContraMeta(porcentagemInvestida: BigDecimal, meta: BigDecimal): BigDecimal {
-        return porcentagemInvestida - meta
+        return porcentagemInvestida.minus(meta)
     }
 }

@@ -206,10 +206,16 @@
                         <h1 id="entries-title">Lançamentos do mês</h1>
                         <p>Registre e revise tudo que movimentou seu orçamento.</p>
                     </div>
-                    <button class="primary-button" id="new-entry-page" type="button">
-                        <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
-                        Novo lançamento
-                    </button>
+                    <div class="page-actions">
+                        <button class="secondary-button back-button" type="button" @click="goBack()">
+                            <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+                            Voltar
+                        </button>
+                        <button class="primary-button" id="new-entry-page" type="button">
+                            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+                            Novo lançamento
+                        </button>
+                    </div>
                 </div>
 
                 <div class="filter-context" id="entry-filter-context" hidden>
@@ -263,6 +269,10 @@
                         <p>Compare entradas, saídas, investimentos e saldo ao longo dos 12 meses.</p>
                     </div>
                     <div class="year-control">
+                        <button class="secondary-button back-button" type="button" @click="goBack()">
+                            <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+                            Voltar
+                        </button>
                         <button id="previous-year" type="button" class="icon-button" aria-label="Ano anterior">
                             <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
                         </button>
@@ -365,6 +375,10 @@
                         <h1 id="import-title">Importar extrato Nubank</h1>
                         <p>Envie o CSV exportado pelo banco. O arquivo é processado somente neste computador.</p>
                     </div>
+                    <button class="secondary-button back-button" type="button" @click="goBack()">
+                        <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+                        Voltar
+                    </button>
                 </div>
 
                 <div class="import-grid">

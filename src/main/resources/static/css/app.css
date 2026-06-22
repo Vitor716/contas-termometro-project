@@ -174,6 +174,8 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .view.is-active { display: block; animation: reveal .25s ease; }
 @keyframes reveal { from { opacity: 0; transform: translateY(5px); } }
 .page-heading { margin-bottom: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.page-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.back-button svg { width: 16px; }
 .eyebrow, .panel-kicker { margin: 0 0 7px; color: var(--amber); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .page-heading h1 { margin: 0; font: 800 clamp(27px, 3vw, 38px)/1.16 "Manrope", sans-serif; letter-spacing: -.04em; }
 .page-heading h1 span { color: var(--green); }
@@ -425,6 +427,7 @@ dialog::backdrop { background: rgba(13, 35, 29, .54); backdrop-filter: blur(3px)
     .page-heading { align-items: flex-start; }
     .page-heading .secondary-button { padding: 0 12px; font-size: 0; }
     .page-heading .secondary-button svg { margin: 0; }
+    .page-heading .back-button { font-size: 13px; }
     .metric-grid { gap: 10px; }
     .metric-card { padding: 15px; }
     .metric-card > strong { font-size: 19px; }
@@ -432,6 +435,7 @@ dialog::backdrop { background: rgba(13, 35, 29, .54); backdrop-filter: blur(3px)
     .thermometer-stats div + div { padding: 11px 0 0; border-left: 0; border-top: 1px solid var(--line); }
     .toolbar { flex-direction: column; }
     .annual-heading { align-items: flex-start; flex-direction: column; }
+    .page-actions { width: 100%; justify-content: space-between; }
     .annual-chart-panel { overflow-x: auto; }
     .annual-chart { min-width: 680px; }
     .annual-months-grid { grid-template-columns: repeat(2, 1fr); }
@@ -451,7 +455,8 @@ dialog::backdrop { background: rgba(13, 35, 29, .54); backdrop-filter: blur(3px)
     .table-footer { align-items: flex-start; flex-direction: column; justify-content: center; gap: 4px; }
     .type-selector { grid-template-columns: 1fr 1fr; }
     .year-control { width: 100%; }
-    .year-control .secondary-button { margin-left: auto; }
+    .year-control { flex-wrap: wrap; }
+    .year-control #refresh-annual { margin-left: auto; }
     .annual-months-grid { grid-template-columns: 1fr; }
 }
 

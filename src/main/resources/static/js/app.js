@@ -4,6 +4,8 @@ const API = {
     imports: "/api/importacao"
 };
 
+const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao"]);
+
 const TYPE_META = {
     ENTRADA: { label: "Entrada", className: "income", icon: "icon-arrow-down", sign: 1 },
     SAIDA_FIXA: { label: "Saída fixa", className: "fixed", icon: "icon-home", sign: -1 },
@@ -20,7 +22,8 @@ const state = {
     annualMonths: [],
     imports: [],
     selectedFile: null,
-    pendingConfirmation: null
+    pendingConfirmation: null,
+    activeView: "dashboard"
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -42,7 +45,10 @@ document.addEventListener("alpine:init", () => {
             });
         },
         navigate(view) {
-            window.dispatchEvent(new CustomEvent("app:navigate", { detail: { view } }));
+            navigate(view);
+        },
+        goBack() {
+            goBack();
         },
         showEntries(type, label) {
             window.dispatchEvent(new CustomEvent("app:filter-entries", { detail: { type, label } }));
@@ -60,6 +66,7 @@ document.addEventListener("DOMContentLoaded", init);
 function init() {
     byId("month-picker").value = state.month;
     bindNavigation();
+    bindBrowserNavigation();
     bindMonthControls();
     bindEntryForm();
     bindEntryFilters();
@@ -285,8 +292,43 @@ function bindNavigation() {
     });
 }
 
-function navigate(view) {
-    window.dispatchEvent(new CustomEvent("app:navigate", { detail: { view } }));
+function bindBrowserNavigation() {
+    const initialView = viewFromHash();
+    if (location.hash !== `#${initialView}`) {
+        history.replaceState({ view: initialView }, "", `#${initialView}`);
+    }
+    navigate(initialView, { replace: true });
+    window.addEventListener("popstate", event => {
+        navigate(event.state?.view || viewFromHash(), { fromHistory: true });
+    });
+    window.addEventListener("hashchange", () => {
+        navigate(viewFromHash(), { fromHistory: true });
+    });
+}
+
+function navigate(view, options = {}) {
+    const target = VIEWS.has(view) ? view : "dashboard";
+    if (!options.fromHistory) {
+        const method = options.replace ? "replaceState" : "pushState";
+        if (location.hash !== `#${target}` || history.state?.view !== target) {
+            history[method]({ view: target, previousView: state.activeView }, "", `#${target}`);
+        }
+    }
+    state.activeView = target;
+    window.dispatchEvent(new CustomEvent("app:navigate", { detail: { view: target } }));
+}
+
+function goBack() {
+    if (history.state?.previousView) {
+        history.back();
+        return;
+    }
+    navigate("dashboard");
+}
+
+function viewFromHash() {
+    const value = location.hash.replace(/^#/, "");
+    return VIEWS.has(value) ? value : "dashboard";
 }
 
 function bindMonthControls() {

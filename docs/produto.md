@@ -47,6 +47,7 @@ Entram no MVP:
 Ficam fora no inicio:
 
 - Integracao bancaria.
+- Importacao inteligente e captura automatica de anexos.
 - Cartao de credito automatizado.
 - Login cloud.
 - Sincronizacao entre dispositivos.
@@ -62,6 +63,10 @@ Ficam fora no inicio:
 - Saida total: soma de saidas fixas, diario e investimentos quando o objetivo for olhar fluxo de caixa.
 - Performance do mes: resultado entre entradas, saidas e economia planejada.
 - Saldo: dinheiro restante ou saldo informado para reconciliar com a realidade.
+- Parcela: compromisso de uma compra dividido em meses, vinculado a um grupo de parcelamento.
+- Projecao: valor esperado em mês futuro; não equivale a lançamento realizado.
+- Recorrencia: padrão observado em meses distintos que pode sugerir saída fixa.
+- Sugestao: classificação proposta pelo sistema, com confiança e evidências, ainda não confirmada.
 
 ## Pergunta central do consultor
 
@@ -76,3 +81,12 @@ A resposta deve considerar:
 - meta de economia;
 - impacto da compra no mes atual;
 - impacto das parcelas nos meses futuros.
+
+Também deve responder:
+
+- É melhor pagar à vista ou parcelar?
+- Qual é o número máximo saudável de parcelas?
+- Qual é o valor máximo seguro?
+- A compra toca minha reserva?
+- Quanto tempo levo para recuperar a meta?
+- Qual regra levou à recomendação?

@@ -39,7 +39,13 @@ Com o Gradle Wrapper:
 Endpoint inicial:
 
 ```bash
-curl http://localhost:8080/api/sistema/saude
+curl http://localhost:8081/api/sistema/saude
+```
+
+Interface local:
+
+```text
+http://localhost:8081
 ```
 
 ## Proximos passos
@@ -58,3 +64,8 @@ curl http://localhost:8080/api/sistema/saude
 - [Roadmap](docs/roadmap.md)
 - [Arquitetura](docs/arquitetura.md)
 - [Frontend](docs/frontend.md)
+- [Motor de análise financeira](docs/analise-financeira.md)
+- [Importação inteligente](docs/importacao-inteligente.md)
+- [Setup local no Windows](docs/setup-windows.md)
+- [Backup, versionamento e sincronização](docs/backup-e-sincronizacao.md)
+- [Índice de decisões arquiteturais](docs/adrs/README.md)

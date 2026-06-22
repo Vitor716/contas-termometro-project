@@ -1,345 +1,541 @@
 # Roadmap
 
-Este roadmap existe para permitir evoluir o projeto sem depender de muita IA. Cada MVP deve terminar com algo executavel, testado e pequeno o bastante para revisar sozinho.
+Este roadmap prioriza domínio confiável, execução local simples e entregas pequenas. Funcionalidades já prototipadas podem precisar de revisão para atender aos critérios definitivos.
+
+## Legenda
+
+- ✅ implementado e validado;
+- 🟡 parcialmente implementado ou com pendências;
+- 🧪 protótipo que ainda não atende ao fluxo definitivo;
+- ⬜ planejado.
+
+## Estado atual
+
+- ✅ Spring Boot 4, Kotlin, Java 21, Gradle Wrapper e monólito modular.
+- ✅ SQLite local, JPA e cinco migrations Flyway.
+- ✅ Endpoint de saúde.
+- ✅ CRUD de lançamentos e listagem mensal.
+- 🟡 Validações e tratamento de erros de lançamentos.
+- 🟡 Resumo mensal disponível, mas ainda divergente de regras documentadas.
+- 🧪 Importação CSV Nubank com parser, persistência e histórico de lotes.
+- ✅ Frontend local responsivo com Alpine.js versionado.
+- ✅ Dashboard, formulário, edição, exclusão, filtros e importação pelo frontend.
+- 🟡 Testes: existem testes de contexto, repositório e modulith, mas a suíte não compila por referência antiga a `LancamentosMapperImpl`.
+- ⬜ Metas configuráveis, consultor, parcelas, visão anual, importação inteligente, e-mail, IA e backup guiado.
+
+O protótipo de importação não encerra o MVP futuro de importação inteligente. Persistência automática sem pré-visualização deve ser tratada como comportamento transitório.
+
+O resumo mensal também não deve ser considerado concluído enquanto:
+
+- investimento e ajuste de saldo não participarem das fórmulas conforme a documentação;
+- divisão por zero estiver tratada;
+- gasto esperado até hoje usar o dia do mês;
+- performance contra a meta possuir semântica única;
+- testes puros cobrirem os cálculos.
+
+## Como interpretar itens parciais e protótipos
+
+Um MVP 🟡 já entrega valor, mas ainda possui lacunas que impedem considerá-lo confiável ou encerrado. Cada seção parcial contém:
+
+- `Implementado`: comportamento disponível hoje;
+- `Pendências`: diferença objetiva para o estado-alvo;
+- `Ordem sugerida`: sequência segura de desenvolvimento;
+- `Concluído quando`: condição para trocar 🟡 por ✅.
+
+Um MVP 🧪 prova uma ideia, mas seu contrato ou fluxo ainda será substituído. Código de protótipo pode ser reaproveitado, porém não deve limitar o desenho definitivo.
 
 ## Ordem recomendada
 
-1. Fundacao tecnica.
-2. Lancamentos manuais.
-3. Resumo mensal.
-4. Importacao CSV.
-5. Consultor de compra.
-6. Visao anual.
-7. Frontend simples.
-8. Metas e investimentos.
+1. Consolidar fundação e setup.
+2. Consolidar lançamentos e resumo mensal.
+3. Organizar frontend com Alpine.js.
+4. Implementar metas e configurações financeiras.
+5. Implementar motor determinístico de decisão.
+6. Implementar parcelas manuais e projeções.
+7. Implementar visão anual.
+8. Evoluir importação CSV inteligente.
+9. Automatizar captura por e-mail.
+10. Adicionar IA opcional local ou por free tier remoto.
+11. Implementar backup e portabilidade guiados.
+
+## MVP 0 - Fundação local e setup reproduzível — 🟡
+
+Objetivo: clonar, executar e visualizar o sistema no Windows sem configurar infraestrutura.
+
+Entregáveis:
+
+- JDK 21 e Gradle Wrapper; ✅
+- SQLite criado automaticamente; ✅
+- mover o banco da raiz para `data/`;
+- caminho configurável por `CONTAS_DB_PATH`;
+- Flyway aplicando migrations; ✅
+- perfil local padrão; ✅
+- endpoint de saúde; ✅
+- documentação `docs/setup-windows.md`; ✅
+- banco, backups, tokens e CSVs fora do Git. ✅
+
+### Implementado
+
+- aplicação sobe localmente sem Docker;
+- SQLite é criado automaticamente na raiz;
+- migrations V1 a V5 são aplicadas;
+- pool está limitado para uso com SQLite;
+- perfil `local` é padrão;
+- arquivos de banco são ignorados pelo Git.
+
+### Pendências
+
+1. Alterar a URL para usar `data/contas-termometro.db`.
+2. Criar `data/` antes da inicialização do datasource.
+3. Permitir override por `CONTAS_DB_PATH`.
+4. Garantir que caminho com espaços funcione no Windows.
+5. Testar primeiro uso sem banco e atualização de banco existente.
+6. Corrigir documentação se a variável ou caminho final mudar.
+
+### Ordem sugerida
+
+1. parametrizar `application-local.yml`;
+2. criar inicializador do diretório;
+3. testar banco novo e banco migrado;
+4. mover manualmente o banco existente com backup.
+
+### Concluído quando
+
+- clone novo sobe sem intervenção;
+- banco existente pode ser movido sem perda;
+- caminho padrão e customizado possuem teste;
+- ADR relacionada: [ADR 0005](adrs/0005-sqlite-como-persistencia-inicial.md).
+
+Critérios de aceite:
+
+- um computador novo executa `.\gradlew.bat bootRun`;
+- a interface abre sem Docker;
+- o schema é criado automaticamente;
+- o caminho do banco pode ser configurado;
+- `git status` não mostra dados pessoais.
+
+## MVP 1 - Lançamentos manuais confiáveis — 🟡
+
+Objetivo: substituir a entrada manual da planilha.
+
+Entregáveis:
+
+- criar, buscar, listar, editar e excluir lançamentos; ✅
+- filtro mensal e vínculo opcional a lote; ✅
+- validações de valor, data e mês; 🟡
+- erros legíveis; 🟡
+- testes de service e controller;
+- corrigir ou remover teste legado de mapper;
+- decidir se exclusão será física ou por `status`;
+- campos futuros de parcelamento previstos sem exigir implementação imediata.
+
+### Implementado
+
+- endpoints POST, GET por ID, GET por mês, PUT e DELETE;
+- persistência monetária em centavos;
+- validações Bean Validation no request;
+- vínculo opcional com lote;
+- exceção específica para lançamento inexistente.
+
+### Pendências
+
+1. Decidir e implementar cancelamento lógico ou exclusão física.
+2. Fazer todas as listagens ignorarem cancelados por padrão.
+3. Corrigir edição para permitir alterar `tipo` e tratar `idLote` deliberadamente.
+4. Validar coerência entre `data` e `mesReferencia`.
+5. Permitir valor negativo somente para `AJUSTE_SALDO`, alinhando DTO e banco.
+6. Tratar `MethodArgumentNotValidException`, integridade de banco e erros inesperados em `ProblemDetail`.
+7. Corrigir textos com encoding inválido.
+8. Criar testes de service e controller.
+9. Remover ou reescrever `LancamentosMapperImplTest`, que referencia classe inexistente.
 
-## MVP 0 - Fundacao local
+### Ordem sugerida
 
-Objetivo: deixar o projeto pronto para desenvolvimento local seguro.
+1. aceitar a decisão da ADR 0011;
+2. corrigir contrato e validações;
+3. padronizar erros;
+4. corrigir a suíte;
+5. adicionar testes de comportamento.
+
+### Concluído quando
+
+- `.\gradlew.bat test` passa;
+- cancelamento e consultas possuem semântica única;
+- respostas inválidas retornam campos e mensagens previsíveis;
+- ADR relacionada: [ADR 0011](adrs/0011-ciclo-de-vida-e-exclusao-de-lancamentos.md).
+
+Critérios de aceite:
+
+- tipos do domínio são cadastrados;
+- listagem mensal é consistente;
+- edição não altera silenciosamente campos não enviados;
+- dados inválidos não são persistidos.
+
+## MVP 2 - Resumo mensal validado — 🟡
+
+Objetivo: reproduzir a planilha com regras formalizadas.
+
+Entregáveis:
+
+- endpoint e DTO de resumo mensal; ✅
+- fluxo de caixa básico; 🟡
+- total investido; ✅
+- performance contra meta; 🟡
+- orçamento diário; 🟡
+- ajustes de saldo;
+- leitura da meta persistida;
+- testes de limites e arredondamento;
+- amostra fictícia conferida manualmente.
+
+### Implementado
+
+- endpoint mensal;
+- DTO de resposta;
+- calculadoras separadas para fluxo, investimento e gasto diário;
+- totais básicos consumidos pelo dashboard.
 
-Entregaveis:
+### Divergências atuais
 
-- Configurar SQLite local. ✅
-- Garantir que `data/` fique fora do Git. ✅
-- Criar migrations iniciais.
-- Criar estrutura de pacotes em portugues. ✅
-- Criar perfil `local`. ✅
-- Criar endpoint `GET /api/sistema/saude`. ✅
-- Criar fixtures anonimas para testes. ✅
-
-Tarefas:
+1. `saidaTotal` soma fixas e diário, mas não investimento.
+2. `saldoMes` ignora investimento e ajustes.
+3. porcentagem usa escala `0..100`.
+4. performance é subtração de pontos percentuais.
+5. meta está fixa em `20`, sem consultar `metas_mensais`.
+6. entrada zero pode gerar divisão por zero.
+7. gasto esperado retorna valor diário, não acumulado até o dia.
+8. `diaAtual` é recebido, mas não é usado pela calculadora.
+9. não há tratamento definido para mês futuro e histórico.
 
-- Adicionar dependencias de persistencia. ✅
-- Criar `data/.gitkeep` somente se necessario, sem banco real. ✅
-- Criar migration `V1__criar_lancamentos.sql`. ✅
-- Criar migration `V2__criar_metas_mensais.sql`. ✅
-- Criar teste de contexto. ✅
-- Criar teste simples de repository. ✅
-
-Criterios de aceite:
-
-- `.\gradlew.bat test` passa. ✅
-- A aplicacao sobe sem cloud. ✅
-- O banco real nao aparece no `git status`. ✅
-
-## MVP 1 - Lancamentos manuais
+### Ordem sugerida
+
+1. aceitar a ADR 0012;
+2. escrever testes com os exemplos documentados;
+3. corrigir calculadoras puras;
+4. criar leitura da meta vigente;
+5. ajustar DTO e frontend;
+6. conferir com amostra manual fictícia.
 
-Objetivo: substituir o input manual da planilha.
+### Concluído quando
 
-Modulos envolvidos:
+- todos os cenários da ADR 0012 possuem teste;
+- mês sem entrada retorna resposta válida;
+- nenhuma fórmula é recalculada no frontend;
+- resultado bate com a referência aprovada;
+- ADR relacionada: [ADR 0012](adrs/0012-semantica-oficial-dos-resumos-financeiros.md).
 
-- `lancamentos`
-- `configuracao`
+Critérios de aceite:
 
-Endpoints:
+- cálculo bate com a referência aprovada;
+- fórmulas possuem testes puros;
+- nenhuma regra depende do frontend.
 
-```text
-POST /api/lancamentos ✅
-GET /api/lancamentos?mes=2026-06 ✅
-GET /api/lancamentos/{id} ✅
-PUT /api/lancamentos/{id} ✅
-DELETE /api/lancamentos/{id} ✅
-```
+## MVP 3 - Frontend local com Alpine.js — 🟡
 
-Tipos de lancamento:
+Objetivo: operar lançamentos e resumo com código de interface simples de manter.
 
-- `ENTRADA`
-- `SAIDA_FIXA`
-- `GASTO_DIARIO`
-- `INVESTIMENTO`
-- `AJUSTE_SALDO`
+Entregáveis:
 
-Campos minimos:
+- Alpine.js versionado localmente; ✅
+- componentes separados por fluxo;
+- cliente de API e formatadores reutilizáveis;
+- estados de carregamento, vazio e erro; ✅
+- responsividade; ✅
+- dashboard e CRUD mensal; ✅
+- formulário de criação e edição; ✅
+- busca e filtro por tipo; ✅
+- fluxo de importação básica; ✅
+- atalhos dos indicadores para listas filtradas com edição. ✅
 
-- `id`
-- `tipo`
-- `descricao`
-- `valor`
-- `data`
-- `mesReferencia`
-- `categoria`
-- `observacao`
+### Implementado
 
-Tarefas:
+- Alpine.js local e sem CDN;
+- dashboard mensal;
+- CRUD visual, busca e filtros;
+- atalhos de cards para listagem;
+- visão anual;
+- upload e histórico da importação básica;
+- estados de carregamento, vazio, erro e confirmação;
+- layout responsivo.
 
-- Criar entidade `Lancamento`. 
-- Criar enum `TipoLancamento`. 
-- Criar repository.
-- Criar service com validacoes.
-- Criar controller.
-- Criar DTOs de request/response.
-- Validar valor positivo.
-- Validar `mesReferencia` no formato `yyyy-MM`.
-- Criar testes unitarios do service.
-- Criar testes de controller.
+### Pendências
 
-Criterios de aceite:
+1. Dividir `app.js` por contexto: API, dashboard, lançamentos, anual e importação.
+2. Transformar os principais fluxos em componentes Alpine independentes.
+3. Remover estado global que não seja realmente compartilhado.
+4. Não manter fallback de cálculo financeiro no navegador após endpoints definitivos.
+5. Criar testes de interface para navegação, filtro, formulário e erro da API.
+6. Revisar acessibilidade com foco, labels, contraste e diálogos.
+7. Definir política de cache dos assets locais.
 
-- E possivel cadastrar entrada, saida fixa, gasto diario e investimento.
-- E possivel listar todos os lancamentos de um mes.
-- Dados invalidos retornam erro claro.
+### Ordem sugerida
 
-## MVP 2 - Resumo mensal
+1. extrair cliente HTTP e formatadores;
+2. extrair componentes sem alterar comportamento;
+3. adicionar testes de fluxo;
+4. remover agregações transitórias após APIs anuais.
 
-Objetivo: reproduzir os calculos principais da planilha.
+### Concluído quando
 
-Modulos envolvidos:
+- cada fluxo possui estado isolado;
+- `app.js` deixa de ser arquivo central monolítico;
+- falhas da API são testadas;
+- frontend não contém fórmula financeira;
+- ADR relacionada: [ADR 0006](adrs/0006-frontend-simples-no-monolito.md).
 
-- `lancamentos`
-- `orcamento`
+Critérios de aceite:
 
-Endpoint:
+- funciona servido pelo Spring Boot;
+- funciona sem CDN;
+- regras financeiras não são duplicadas no navegador;
+- componentes não dependem de um estado global único.
 
-```text
-GET /api/meses/{yyyy-MM}/resumo
-```
+## MVP 4 - Metas e limites financeiros — ⬜
 
-Resposta deve conter:
+Objetivo: fornecer parâmetros reais para o consultor.
 
-- soma das entradas; ✅
-- soma das saidas fixas; ✅
-- total de gasto diario; ✅
-- total investido/economizado; ✅
-- saida total; ✅
-- saldo do mes; ✅
-- porcentagem investida sobre entradas; ✅
-- meta de investimento do mes; ✅
-- performance contra meta; ✅
-- gasto diario esperado ate o dia atual; ✅
-- gasto diario restante. ✅
+Entregáveis:
 
-Tarefas:
+- meta mensal e anual de investimento;
+- reserva mínima intocável;
+- orçamento diário mínimo;
+- comprometimento máximo da renda;
+- margem de segurança;
+- estratégia conservadora, equilibrada ou flexível.
 
-- Criar calculadora mensal pura, sem Spring.
-- Criar DTO `ResumoMensal`.
-- Criar service que busca lancamentos e chama calculadora.
-- Criar controller de meses.
-- Criar testes com cenario parecido com a planilha real, mas usando valores ficticios.
-- Documentar formulas em `docs/regras-de-calculo.md`.
+Critérios de aceite:
 
-Criterios de aceite:
+- configurações possuem valores padrão explícitos;
+- mudanças afetam novas simulações;
+- histórico financeiro não é recalculado silenciosamente.
 
-- O resumo bate com uma amostra manual calculada.
-- A calculadora tem testes cobrindo entrada, saida fixa, gasto diario e investimento.
-- Nenhum dado real e usado nos testes.
+## MVP 5 - Motor de tomada de decisão — ⬜
 
-## MVP 3 - Importacao CSV
+Objetivo: responder se uma compra cabe e qual alternativa é mais saudável.
 
-Objetivo: reduzir input manual importando extratos, com revisao antes de salvar.
+Entregáveis:
 
-Comecar por Nubank, mas desenhar para permitir outros bancos depois.
+- cenários à vista, parcelados, adiados e de valor reduzido;
+- projeção mensal;
+- valor máximo seguro;
+- quantidade máxima de parcelas;
+- impacto na meta, reserva, orçamento diário e comprometimento;
+- prazo de recuperação;
+- decisão e explicação determinísticas;
+- documentação `docs/analise-financeira.md`.
 
-Modulos envolvidos:
+Critérios de aceite:
 
-- `importacao`
-- `lancamentos`
+- decisão é reproduzível sem IA;
+- regras acionadas aparecem na resposta;
+- parcela que quebra um mês futuro é rejeitada;
+- usuário consegue conferir os cálculos.
 
-Endpoints:
+## MVP 6 - Parcelas e compromissos futuros — ⬜
 
-```text
-POST /api/importacoes/nubank/csv/pre-visualizacao
-POST /api/importacoes/nubank/csv/confirmar
-GET /api/importacoes/{id}
-```
+Objetivo: visualizar o que já está comprometido nos próximos meses.
 
-Fluxo:
+Entregáveis:
 
-1. Usuario envia CSV.
-2. Sistema interpreta linhas.
-3. Sistema retorna pre-visualizacao com sugestao de tipo/categoria.
-4. Usuario confirma o que deve virar lancamento.
-5. Sistema grava lancamentos.
+- grupo de parcelamento;
+- cadastro manual de compra parcelada;
+- parcela atual e total;
+- projeções futuras separadas de lançamentos realizados;
+- aba de parcelas;
+- saldo restante e mês final;
+- comprometimento mensal futuro.
 
-Tarefas:
+Critérios de aceite:
 
-- Criar modulo `importacao`.
-- Criar parser para CSV Nubank.
-- Criar modelo `LinhaImportada`.
-- Criar detector simples de duplicidade.
-- Criar mapeamento de colunas documentado.
-- Criar testes com CSV ficticio.
-- Bloquear persistencia automatica sem confirmacao.
+- projeção não infla o realizado;
+- edição de uma parcela preserva histórico;
+- cancelamento e antecipação têm semântica definida;
+- consultor considera parcelas existentes.
 
-Criterios de aceite:
+## MVP 7 - Resumo anual — 🟡
 
-- Um CSV ficticio do Nubank e interpretado.
-- A pre-visualizacao nao grava no banco.
-- A confirmacao grava somente linhas selecionadas.
-- Duplicidades obvias sao sinalizadas.
+Objetivo: visualizar evolução de entradas, investimento e compromissos.
 
-Observacao:
+Entregáveis:
 
-Nao versionar CSV real. Criar apenas exemplos anonimos em `src/test/resources`.
+- panorama anual no frontend agregando os endpoints mensais; ✅
+- totais anuais; ✅
+- percentual e média investidos; ✅
+- destaques de maior entrada, investimento e saída; ✅
+- lista dos 12 meses, incluindo meses zerados; ✅
+- navegação do mês anual para lançamentos filtráveis; ✅
+- endpoint anual dedicado no backend;
+- melhor e pior mês segundo regra financeira formal;
+- evolução de parcelas e comprometimento.
 
-## MVP 4 - Consultor de compra
+Estado atual: a interface consolida os 12 meses usando o resumo mensal e possui fallback de agregação quando o resumo falha. O MVP só será concluído após existir endpoint anual no backend e regras mensais corrigidas.
+
+### Implementado
 
-Objetivo: responder se uma compra cabe no mes atual ou em parcelas.
+- seletor de ano;
+- cards consolidados;
+- gráfico dos 12 meses;
+- destaques;
+- meses vazios;
+- navegação para lançamentos do mês.
 
-Modulos envolvidos:
+### Limitações do estado atual
 
-- `consultor`
-- `orcamento`
-- `lancamentos`
+- frontend realiza múltiplas requisições;
+- fallback duplica fórmulas financeiras;
+- melhor e pior mês não possuem regra oficial;
+- resultado herda divergências do resumo mensal;
+- parcelas e comprometimento futuro ainda não existem.
 
-Endpoints:
+### Ordem sugerida
 
-```text
-POST /api/consultor/compras/simular
-GET /api/consultor/simulacoes?mes=2026-06
-```
+1. concluir MVP 2;
+2. aceitar ADR 0013;
+3. implementar agregador anual no backend;
+4. testar igualdade entre soma mensal e anual;
+5. substituir agregação do frontend por uma requisição.
 
-Entrada:
+### Concluído quando
 
-- descricao;
-- valor;
-- forma de pagamento: `A_VISTA` ou `PARCELADO`;
-- quantidade de parcelas;
-- mes inicial.
+- endpoint anual retorna 12 meses;
+- frontend apenas apresenta o DTO;
+- ranking anual é determinístico;
+- percentuais anuais usam totais do ano;
+- ADR relacionada: [ADR 0013](adrs/0013-resumo-anual-calculado-no-backend.md).
 
-Resposta:
+## MVP 8 - Importação CSV inteligente — 🧪
 
-- decisao: `OK`, `ATENCAO`, `NAO_RECOMENDADO`;
-- impacto no mes atual;
-- impacto nos proximos meses;
-- impacto na meta de investimento;
-- explicacao com os numeros usados.
+Objetivo: importar com revisão, detectar parcelas, duplicidades e recorrências.
 
-Tarefas:
+Entregáveis:
+
+- parser Nubank e upload básico; ✅
+- persistência e exclusão por lote; ✅
+- pré-visualização sem persistência;
+- confirmação transacional e idempotente;
+- hash de arquivo, mensagem e linha;
+- impressão digital do lançamento;
+- detecção de parcela informada pelo Nubank;
+- sugestão de recorrência e `SAIDA_FIXA`;
+- regras de classificação aprendidas por confirmação;
+- tela de revisão;
+- documentação `docs/importacao-inteligente.md`.
 
-- Criar calculadora de compra a vista.
-- Criar calculadora de parcelamento.
-- Criar DTO de simulacao.
-- Criar historico opcional de simulacoes.
-- Criar testes para compra que cabe e compra que nao cabe.
+Critérios de aceite:
 
-Criterios de aceite:
+- mesmo arquivo não é importado duas vezes;
+- duplicidade exata é bloqueada;
+- similaridade gera alerta;
+- sugestão mostra confiança e evidências;
+- nenhuma reclassificação histórica ocorre sem confirmação;
+- parcelas detectadas aparecem na aba de parcelas.
 
-- O sistema explica por que uma compra cabe ou nao cabe.
-- O resultado nao depende de IA.
-- O usuario consegue reproduzir a conta manualmente.
+### O que o protótipo comprova
 
-## MVP 5 - Resumo anual
+- o CSV Nubank pode ser recebido e interpretado;
+- linhas válidas podem virar lançamentos;
+- falhas podem ser registradas;
+- lançamentos podem ser agrupados e removidos por lote;
+- existe interface para upload e histórico.
 
-Objetivo: enxergar evolucao de entradas e investimentos no ano.
+### Por que ainda é protótipo
 
-Endpoint:
-
-```text
-GET /api/anos/{yyyy}/resumo
-```
-
-Resposta deve conter:
-
-- total de entradas no ano;
-- total investido no ano;
-- porcentagem investida anual;
-- media mensal investida;
-- melhor mes;
-- pior mes;
-- lista de resumos mensais.
-
-Tarefas:
-
-- Reutilizar calculadora mensal.
-- Criar agregador anual.
-- Criar testes com 12 meses ficticios.
-
-Criterios de aceite:
-
-- Percentual anual bate com soma dos meses.
-- Meses sem lancamento aparecem zerados ou sao tratados de forma documentada.
-
-## MVP 6 - Frontend local simples
-
-Objetivo: usar o sistema sem Postman/curl.
-
-Abordagem:
-
-- HTML/CSS/JS simples em `src/main/resources/static`.
-- Sem Angular, Vue ou React.
-
-Telas:
-
-- Dashboard mensal.
-- Formulario de lancamento.
-- Lista de lancamentos.
-- Importacao CSV.
-- Simulador de compra.
-- Resumo anual.
-
-Tarefas:
-
-- Criar layout base.
-- Criar chamadas `fetch` para a API.
-- Criar estados de carregamento e erro.
-- Criar formatacao de moeda e percentual.
-- Criar CSS simples e responsivo.
-
-Criterios de aceite:
-
-- E possivel cadastrar lancamento pela tela.
-- E possivel ver resumo mensal.
-- E possivel simular compra.
-- A tela roda servida pelo Spring Boot.
-
-## MVP 7 - Metas de investimento
-
-Objetivo: evoluir a parte de investimento sem transformar o app em corretora.
-
-Endpoints:
-
-```text
-POST /api/metas
-GET /api/metas?ano=2026
-PUT /api/metas/{id}
-```
-
-Entregaveis:
-
-- meta mensal por percentual;
-- meta anual;
-- categorias de investimento;
-- comparacao meta vs realizado;
-- projecao simples de recuperacao depois de compra grande.
-
-Criterios de aceite:
-
-- O sistema mostra se a meta mensal foi batida.
-- O sistema mostra quanto falta para a meta anual.
-- Compras simuladas mostram impacto na recuperacao futura.
-
-## MVP 8 - Backup e portabilidade
-
-Objetivo: abrir em outro PC sem usar cloud obrigatoria.
-
-Entregaveis:
-
-- exportar backup local;
-- importar backup local;
-- documentar restauracao;
-- avaliar criptografia de backup.
-
-Criterios de aceite:
-
-- Um banco local pode ser copiado/restaurado sem expor dados no Git.
-- O processo esta documentado.
+- persiste imediatamente, sem pré-visualização;
+- não usa hash real do arquivo;
+- identificador do lote é temporal e aleatório;
+- não é idempotente;
+- reenvio do mesmo CSV duplica lançamentos;
+- não detecta parcelas, recorrências ou similaridade;
+- exclusão do lote apaga registros fisicamente;
+- JSON de falhas é montado manualmente;
+- erros de lote usam exceção genérica;
+- contrato dos endpoints diverge da documentação definitiva.
+
+### Estratégia de evolução
+
+Não expandir o endpoint atual com várias responsabilidades. Criar o fluxo novo de pré-visualização em paralelo:
+
+1. armazenar metadados e hash;
+2. persistir linhas em estado não confirmado;
+3. executar detectores;
+4. permitir correção;
+5. confirmar transacionalmente;
+6. migrar o frontend;
+7. descontinuar o upload com persistência imediata.
+
+### Concluído quando
+
+- importação é idempotente;
+- revisão precede gravação;
+- sugestões são auditáveis;
+- lote confirmado pode ser cancelado sem apagar histórico;
+- ADR relacionada: [ADR 0007](adrs/0007-importacao-inteligente-com-revisao.md).
+
+## MVP 9 - Captura de CSV por e-mail — ⬜
+
+Objetivo: encontrar anexos automaticamente sem infraestrutura própria em cloud.
+
+Entregáveis:
+
+- conector Gmail com OAuth de aplicativo desktop;
+- filtros por remetente, assunto e anexo;
+- polling local;
+- registro de `messageId`, `attachmentId` e hash;
+- envio do arquivo para a pré-visualização existente;
+- revogação de acesso;
+- opção de execução pelo Agendador de Tarefas do Windows.
+
+Critérios de aceite:
+
+- senha do e-mail nunca é armazenada;
+- escopo inicial é somente leitura;
+- anexo repetido não é processado;
+- mensagem desconhecida não é importada;
+- confirmação continua obrigatória.
+
+## MVP 10 - IA opcional local ou remota — ⬜
+
+Objetivo: melhorar explicações sem tornar a IA fonte da decisão ou criar custo obrigatório.
+
+Entregáveis:
+
+- porta `ExplicadorDecisao`;
+- implementação por template;
+- adaptador Ollama;
+- adaptador opcional Gemini free tier;
+- adaptador opcional GitHub Models para desenvolvimento;
+- DTO reduzido e anonimizado;
+- resposta validada por JSON Schema;
+- fallback automático;
+- configuração para ativar e escolher modelo.
+
+Critérios de aceite:
+
+- sistema funciona sem qualquer provedor;
+- IA não altera decisão nem valores;
+- resposta inválida usa template;
+- dados brutos não são enviados ao modelo.
+
+## MVP 11 - Backup, versionamento e portabilidade — ⬜
+
+Objetivo: abrir o sistema em outro computador com segurança.
+
+Entregáveis:
+
+- exportar backup consistente;
+- importar com validação de versão;
+- criptografar antes de enviar para qualquer serviço;
+- destino opcional em repositório GitHub privado separado;
+- retenção de snapshots;
+- backup automático antes de restaurar;
+- mostrar caminho e data do banco;
+- documentação de migração entre computadores;
+- documentação `docs/backup-e-sincronizacao.md`;
+- reavaliar Firestore somente para sincronização entre dispositivos.
+
+Critérios de aceite:
+
+- banco é restaurado em instalação nova;
+- restauração incompatível é bloqueada;
+- somente arquivos criptografados podem passar pelo Git;
+- chave de criptografia nunca é versionada;
+- procedimento prioriza Windows e não exige cloud.

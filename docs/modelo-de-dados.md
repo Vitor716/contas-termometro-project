@@ -57,6 +57,11 @@ data
 mes_referencia
 categoria
 observacao
+grupo_parcelamento_id
+parcela_atual
+total_parcelas
+origem
+fingerprint
 criado_em
 atualizado_em
 ```
@@ -97,6 +102,92 @@ decisao
 motivo
 criado_em
 ```
+
+### `grupos_parcelamento`
+
+Representa uma compra parcelada e suas projeções.
+
+```text
+id
+descricao_base
+valor_parcela_centavos
+total_parcelas
+primeira_parcela
+ultima_parcela
+origem
+status
+criado_em
+atualizado_em
+```
+
+### `pre_visualizacoes_importacao`
+
+```text
+id
+provedor
+origem_arquivo
+hash_arquivo
+message_id
+attachment_id
+status
+criado_em
+confirmado_em
+```
+
+### `linhas_importacao`
+
+Mantém dado bruto, normalizado e sugestões até a confirmação.
+
+```text
+id
+pre_visualizacao_id
+numero_linha
+conteudo_bruto
+descricao_normalizada
+valor_centavos
+data
+hash_linha
+fingerprint_lancamento
+status
+tipo_sugerido
+categoria_sugerida
+confianca
+evidencias_json
+```
+
+### `regras_classificacao`
+
+```text
+id
+padrao
+tipo_resultante
+categoria_resultante
+origem
+confirmacoes
+prioridade
+ativo
+ultima_utilizacao
+```
+
+### `configuracoes_financeiras`
+
+```text
+id
+percentual_meta_investimento
+reserva_minima_centavos
+orcamento_diario_minimo_centavos
+percentual_maximo_comprometimento
+margem_seguranca_percentual
+estrategia
+```
+
+## Índices e unicidade futuros
+
+- índice único em `hash_arquivo` por provedor;
+- índice único em `pre_visualizacao_id + hash_linha`;
+- índice de busca em `mes_referencia + fingerprint`;
+- índice em `grupo_parcelamento_id`;
+- regras não devem sobrescrever histórico sem auditoria.
 
 ## Sobre usar Git como banco
 

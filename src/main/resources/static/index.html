@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f1ea">
+    <meta name="description" content="Controle financeiro pessoal local e simples.">
+    <title>Contas Termômetro</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-shell" x-data="appShell" x-cloak>
+    <aside class="sidebar" :class="{ 'is-open': sidebarOpen }" aria-label="Navegação principal">
+        <a class="brand" href="#dashboard" aria-label="Contas Termômetro — início">
+            <span class="brand-mark" aria-hidden="true">
+                <span class="brand-mercury"></span>
+            </span>
+            <span>
+                <strong>Contas</strong>
+                <small>termômetro</small>
+            </span>
+        </a>
+
+        <nav class="main-nav">
+            <button class="nav-item" :class="{ 'is-active': view === 'dashboard' }" @click="navigate('dashboard')" type="button">
+                <svg aria-hidden="true"><use href="#icon-grid"></use></svg>
+                Visão mensal
+            </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'lancamentos' }" @click="showAllEntries()" type="button">
+                <svg aria-hidden="true"><use href="#icon-receipt"></use></svg>
+                Lançamentos
+            </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'anual' }" @click="navigate('anual')" type="button">
+                <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
+                Visão anual
+            </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'importacao' }" @click="navigate('importacao')" type="button">
+                <svg aria-hidden="true"><use href="#icon-upload"></use></svg>
+                Importar CSV
+            </button>
+        </nav>
+
+        <div class="sidebar-future">
+            <p>Em breve</p>
+            <span><svg aria-hidden="true"><use href="#icon-spark"></use></svg> Consultor de compra</span>
+        </div>
+
+        <div class="privacy-note">
+            <span class="privacy-icon"><svg aria-hidden="true"><use href="#icon-lock"></use></svg></span>
+            <span><strong>Seus dados ficam aqui</strong><small>Armazenados somente neste computador.</small></span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen">
+                <svg aria-hidden="true"><use href="#icon-menu"></use></svg>
+            </button>
+
+            <div class="month-control">
+                <button id="previous-month" type="button" class="icon-button" aria-label="Mês anterior">
+                    <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+                </button>
+                <label>
+                    <span class="sr-only">Mês de referência</span>
+                    <input id="month-picker" type="month">
+                </label>
+                <button id="next-month" type="button" class="icon-button" aria-label="Próximo mês">
+                    <svg aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+                </button>
+            </div>
+
+            <div class="topbar-actions">
+                <span id="connection-status" class="connection-status">
+                    <i></i> Local
+                </span>
+                <button class="primary-button" id="new-entry-top" type="button">
+                    <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+                    Novo lançamento
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <section class="view" :class="{ 'is-active': view === 'dashboard' }" id="view-dashboard" aria-labelledby="dashboard-title">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">Seu dinheiro, sem ruído</p>
+                        <h1 id="dashboard-title">Visão de <span id="dashboard-month-name">este mês</span></h1>
+                        <p>Veja o que entrou, o que saiu e como está sua meta de economia.</p>
+                    </div>
+                    <button class="secondary-button" id="refresh-dashboard" type="button">
+                        <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                        Atualizar
+                    </button>
+                </div>
+
+                <div class="loading-panel" id="dashboard-loading" hidden>
+                    <span class="spinner"></span> Calculando seu mês...
+                </div>
+
+                <div id="dashboard-content">
+                    <div class="metric-grid">
+                        <article class="metric-card is-clickable" role="button" tabindex="0"
+                                 @click="showEntries('ENTRADA', 'Entradas')"
+                                 @keydown.enter.prevent="showEntries('ENTRADA', 'Entradas')"
+                                 @keydown.space.prevent="showEntries('ENTRADA', 'Entradas')">
+                            <div class="metric-label"><span class="metric-icon income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span> Entradas</div>
+                            <strong id="metric-income">R$ 0,00</strong>
+                            <small>Recebido no mês</small>
+                            <span class="metric-action">Ver entradas <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+                        </article>
+                        <article class="metric-card is-clickable" role="button" tabindex="0"
+                                 @click="showEntries('SAIDA_FIXA', 'Saídas fixas')"
+                                 @keydown.enter.prevent="showEntries('SAIDA_FIXA', 'Saídas fixas')"
+                                 @keydown.space.prevent="showEntries('SAIDA_FIXA', 'Saídas fixas')">
+                            <div class="metric-label"><span class="metric-icon fixed"><svg aria-hidden="true"><use href="#icon-home"></use></svg></span> Saídas fixas</div>
+                            <strong id="metric-fixed">R$ 0,00</strong>
+                            <small>Compromissos do mês</small>
+                            <span class="metric-action">Ver saídas fixas <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+                        </article>
+                        <article class="metric-card is-clickable" role="button" tabindex="0"
+                                 @click="showEntries('GASTO_DIARIO', 'Gastos diários')"
+                                 @keydown.enter.prevent="showEntries('GASTO_DIARIO', 'Gastos diários')"
+                                 @keydown.space.prevent="showEntries('GASTO_DIARIO', 'Gastos diários')">
+                            <div class="metric-label"><span class="metric-icon daily"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span> Gastos diários</div>
+                            <strong id="metric-daily">R$ 0,00</strong>
+                            <small>Variáveis e dia a dia</small>
+                            <span class="metric-action">Ver gastos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+                        </article>
+                        <article class="metric-card featured is-clickable" role="button" tabindex="0"
+                                 @click="showAllEntries()"
+                                 @keydown.enter.prevent="showAllEntries()"
+                                 @keydown.space.prevent="showAllEntries()">
+                            <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span> Saldo do mês</div>
+                            <strong id="metric-balance">R$ 0,00</strong>
+                            <small id="balance-caption">Resultado até agora</small>
+                            <span class="metric-action">Ver movimentações <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+                        </article>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <article class="panel thermometer-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="panel-kicker">Termômetro financeiro</span>
+                                    <h2 id="temperature-title">Construindo seu mês</h2>
+                                </div>
+                                <span class="status-pill" id="temperature-status">Sem dados</span>
+                            </div>
+                            <p id="temperature-description">Adicione seus lançamentos para acompanhar sua saúde financeira.</p>
+
+                            <div class="thermometer-track" aria-hidden="true">
+                                <div class="thermometer-fill" id="thermometer-fill"></div>
+                                <i style="left: 25%"></i><i style="left: 50%"></i><i style="left: 75%"></i>
+                            </div>
+                            <div class="thermometer-labels"><span>Atenção</span><span>Equilíbrio</span><span>Excelente</span></div>
+
+                            <div class="thermometer-stats">
+                                <div><span>Performance da meta</span><strong id="metric-performance">0%</strong></div>
+                                <div><span>Investido</span><strong id="metric-invested">R$ 0,00</strong></div>
+                                <div><span>Saída total</span><strong id="metric-total-out">R$ 0,00</strong></div>
+                            </div>
+                        </article>
+
+                        <article class="panel daily-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="panel-kicker">Ritmo de gastos</span>
+                                    <h2>Orçamento diário</h2>
+                                </div>
+                                <span class="round-icon"><svg aria-hidden="true"><use href="#icon-calendar"></use></svg></span>
+                            </div>
+                            <div class="daily-available">
+                                <span>Disponível no período</span>
+                                <strong id="metric-daily-remaining">R$ 0,00</strong>
+                            </div>
+                            <div class="progress-row">
+                                <div class="progress-bar"><span id="daily-progress"></span></div>
+                                <small id="daily-progress-label">Aguardando lançamentos</small>
+                            </div>
+                            <div class="daily-comparison">
+                                <div><span>Gasto até agora</span><strong id="daily-spent">R$ 0,00</strong></div>
+                                <div><span>Esperado até hoje</span><strong id="daily-expected">R$ 0,00</strong></div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <article class="panel recent-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-kicker">Últimos movimentos</span>
+                                <h2>Lançamentos recentes</h2>
+                            </div>
+                            <button class="text-button" type="button" @click="showAllEntries()">Ver todos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></button>
+                        </div>
+                        <div id="recent-list" class="transaction-list"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="view" :class="{ 'is-active': view === 'lancamentos' }" id="view-lancamentos" aria-labelledby="entries-title">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">Movimentações</p>
+                        <h1 id="entries-title">Lançamentos do mês</h1>
+                        <p>Registre e revise tudo que movimentou seu orçamento.</p>
+                    </div>
+                    <button class="primary-button" id="new-entry-page" type="button">
+                        <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+                        Novo lançamento
+                    </button>
+                </div>
+
+                <div class="filter-context" id="entry-filter-context" hidden>
+                    <span><svg aria-hidden="true"><use href="#icon-info"></use></svg> <strong id="entry-filter-label"></strong></span>
+                    <button type="button" id="clear-entry-context">Mostrar todos</button>
+                </div>
+
+                <div class="toolbar">
+                    <label class="search-field">
+                        <svg aria-hidden="true"><use href="#icon-search"></use></svg>
+                        <span class="sr-only">Buscar lançamentos</span>
+                        <input id="entry-search" type="search" placeholder="Buscar por descrição ou categoria">
+                    </label>
+                    <label class="select-field">
+                        <span class="sr-only">Filtrar por tipo</span>
+                        <select id="entry-type-filter">
+                            <option value="">Todos os tipos</option>
+                            <option value="ENTRADA">Entradas</option>
+                            <option value="SAIDA_FIXA">Saídas fixas</option>
+                            <option value="GASTO_DIARIO">Gastos diários</option>
+                            <option value="INVESTIMENTO">Investimentos</option>
+                            <option value="AJUSTE_SALDO">Ajustes de saldo</option>
+                        </select>
+                    </label>
+                </div>
+
+                <article class="panel table-panel">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th class="amount-column">Valor</th><th><span class="sr-only">Ações</span></th></tr>
+                            </thead>
+                            <tbody id="entries-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="entries-empty" class="empty-state" hidden>
+                        <span><svg aria-hidden="true"><use href="#icon-receipt"></use></svg></span>
+                        <h3>Nenhum lançamento encontrado</h3>
+                        <p>Registre a primeira movimentação deste mês.</p>
+                        <button class="secondary-button" id="new-entry-empty" type="button">Criar lançamento</button>
+                    </div>
+                    <div class="table-footer"><span id="entry-count">0 lançamentos</span><strong id="entry-net-total">Saldo listado: R$ 0,00</strong></div>
+                </article>
+            </section>
+
+            <section class="view" :class="{ 'is-active': view === 'anual' }" id="view-anual" aria-labelledby="annual-title">
+                <div class="page-heading annual-heading">
+                    <div>
+                        <p class="eyebrow">Panorama financeiro</p>
+                        <h1 id="annual-title">Visão anual de <span id="annual-year-label"></span></h1>
+                        <p>Compare entradas, saídas, investimentos e saldo ao longo dos 12 meses.</p>
+                    </div>
+                    <div class="year-control">
+                        <button id="previous-year" type="button" class="icon-button" aria-label="Ano anterior">
+                            <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+                        </button>
+                        <label>
+                            <span class="sr-only">Ano do panorama</span>
+                            <input id="year-picker" type="number" min="2000" max="2100" step="1">
+                        </label>
+                        <button id="next-year" type="button" class="icon-button" aria-label="Próximo ano">
+                            <svg aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+                        </button>
+                        <button id="refresh-annual" class="secondary-button" type="button">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                            Atualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="loading-panel" id="annual-loading" hidden>
+                    <span class="spinner"></span> Consolidando os 12 meses...
+                </div>
+
+                <div id="annual-content">
+                    <div class="metric-grid annual-metrics">
+                        <article class="metric-card">
+                            <div class="metric-label"><span class="metric-icon income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span> Entradas no ano</div>
+                            <strong id="annual-income">R$ 0,00</strong>
+                            <small id="annual-income-average">Média mensal: R$ 0,00</small>
+                        </article>
+                        <article class="metric-card">
+                            <div class="metric-label"><span class="metric-icon fixed"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span> Saídas operacionais</div>
+                            <strong id="annual-out">R$ 0,00</strong>
+                            <small id="annual-out-average">Média mensal: R$ 0,00</small>
+                        </article>
+                        <article class="metric-card">
+                            <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span> Investido no ano</div>
+                            <strong id="annual-invested">R$ 0,00</strong>
+                            <small id="annual-invested-rate">0% das entradas</small>
+                        </article>
+                        <article class="metric-card featured">
+                            <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-chart"></use></svg></span> Saldo acumulado</div>
+                            <strong id="annual-balance">R$ 0,00</strong>
+                            <small id="annual-active-months">0 meses com movimentação</small>
+                        </article>
+                    </div>
+
+                    <div class="annual-grid">
+                        <article class="panel annual-chart-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="panel-kicker">Evolução mensal</span>
+                                    <h2>Entradas, saídas e investimentos</h2>
+                                </div>
+                                <div class="chart-legend" aria-label="Legenda do gráfico">
+                                    <span><i class="income"></i>Entradas</span>
+                                    <span><i class="out"></i>Saídas</span>
+                                    <span><i class="investment"></i>Investido</span>
+                                </div>
+                            </div>
+                            <div id="annual-chart" class="annual-chart"></div>
+                        </article>
+
+                        <article class="panel annual-highlights">
+                            <div class="panel-heading">
+                                <div><span class="panel-kicker">Destaques</span><h2>Leitura rápida do ano</h2></div>
+                            </div>
+                            <div class="highlight-list">
+                                <div>
+                                    <span class="highlight-icon good"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span>
+                                    <p><small>Maior entrada</small><strong id="annual-best-income">—</strong><span id="annual-best-income-value">R$ 0,00</span></p>
+                                </div>
+                                <div>
+                                    <span class="highlight-icon investment"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span>
+                                    <p><small>Maior investimento</small><strong id="annual-best-investment">—</strong><span id="annual-best-investment-value">R$ 0,00</span></p>
+                                </div>
+                                <div>
+                                    <span class="highlight-icon warning"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span>
+                                    <p><small>Maior saída</small><strong id="annual-highest-out">—</strong><span id="annual-highest-out-value">R$ 0,00</span></p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <article class="panel annual-months-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-kicker">Detalhamento</span>
+                                <h2>Todos os meses</h2>
+                            </div>
+                            <small>Clique em um mês para abrir seus lançamentos</small>
+                        </div>
+                        <div id="annual-months-grid" class="annual-months-grid"></div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="view" :class="{ 'is-active': view === 'importacao' }" id="view-importacao" aria-labelledby="import-title">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">Importação segura</p>
+                        <h1 id="import-title">Importar extrato Nubank</h1>
+                        <p>Envie o CSV exportado pelo banco. O arquivo é processado somente neste computador.</p>
+                    </div>
+                </div>
+
+                <div class="import-grid">
+                    <article class="panel upload-panel">
+                        <div class="upload-zone" id="upload-zone">
+                            <input id="csv-file" type="file" accept=".csv,text/csv">
+                            <span class="upload-icon"><svg aria-hidden="true"><use href="#icon-upload"></use></svg></span>
+                            <h2>Solte o arquivo CSV aqui</h2>
+                            <p>ou clique para escolher no computador</p>
+                            <small>Apenas arquivos .csv do Nubank</small>
+                        </div>
+                        <div id="selected-file" class="selected-file" hidden>
+                            <span><svg aria-hidden="true"><use href="#icon-file"></use></svg></span>
+                            <div><strong id="selected-file-name"></strong><small id="selected-file-size"></small></div>
+                            <button id="remove-file" class="icon-button" type="button" aria-label="Remover arquivo"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
+                        </div>
+                        <div class="import-warning">
+                            <svg aria-hidden="true"><use href="#icon-info"></use></svg>
+                            <p><strong>Antes de importar</strong>As linhas válidas serão gravadas automaticamente. Você poderá apagar o lote inteiro depois.</p>
+                        </div>
+                        <button class="primary-button full-width" id="upload-button" type="button" disabled>
+                            Importar lançamentos
+                        </button>
+                    </article>
+
+                    <article class="panel history-panel">
+                        <div class="panel-heading">
+                            <div><span class="panel-kicker">Histórico</span><h2>Importações recentes</h2></div>
+                            <button class="icon-button" id="refresh-imports" type="button" aria-label="Atualizar importações"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
+                        </div>
+                        <div id="imports-list" class="imports-list"></div>
+                    </article>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<dialog id="entry-dialog" class="entry-dialog">
+    <form id="entry-form" method="dialog">
+        <div class="dialog-heading">
+            <div><p class="eyebrow">Movimentação</p><h2 id="entry-dialog-title">Novo lançamento</h2></div>
+            <button class="icon-button" id="close-entry-dialog" type="button" aria-label="Fechar"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
+        </div>
+        <input id="entry-id" type="hidden">
+
+        <fieldset class="type-selector">
+            <legend>Que tipo de lançamento é este?</legend>
+            <label><input type="radio" name="tipo" value="ENTRADA" checked><span class="type-option income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg>Entrada</span></label>
+            <label><input type="radio" name="tipo" value="SAIDA_FIXA"><span class="type-option fixed"><svg aria-hidden="true"><use href="#icon-home"></use></svg>Saída fixa</span></label>
+            <label><input type="radio" name="tipo" value="GASTO_DIARIO"><span class="type-option daily"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg>Gasto diário</span></label>
+            <label><input type="radio" name="tipo" value="INVESTIMENTO"><span class="type-option investment"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg>Investimento</span></label>
+            <label><input type="radio" name="tipo" value="AJUSTE_SALDO"><span class="type-option adjustment"><svg aria-hidden="true"><use href="#icon-sliders"></use></svg>Ajuste</span></label>
+        </fieldset>
+
+        <div class="form-grid">
+            <label class="field field-wide"><span>Descrição</span><input id="entry-description" name="descricao" required maxlength="120" placeholder="Ex.: Salário, aluguel, mercado"></label>
+            <label class="field"><span>Valor</span><div class="money-input"><i>R$</i><input id="entry-value" name="valor" required inputmode="decimal" placeholder="0,00"></div></label>
+            <label class="field"><span>Data</span><input id="entry-date" name="data" type="date" required></label>
+            <label class="field"><span>Categoria <small>opcional</small></span><input id="entry-category" name="categoria" maxlength="80" placeholder="Ex.: Moradia"></label>
+            <label class="field"><span>Mês de referência</span><input id="entry-month" name="mesReferencia" type="month" required></label>
+            <label class="field field-wide"><span>Observação <small>opcional</small></span><textarea id="entry-notes" name="observacao" rows="3" maxlength="500" placeholder="Adicione um contexto para lembrar depois"></textarea></label>
+        </div>
+
+        <div class="dialog-actions">
+            <button class="ghost-button" id="cancel-entry" type="button">Cancelar</button>
+            <button class="primary-button" id="save-entry" type="submit"><span>Salvar lançamento</span></button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="confirm-dialog" class="confirm-dialog">
+    <form method="dialog">
+        <span class="confirm-icon"><svg aria-hidden="true"><use href="#icon-trash"></use></svg></span>
+        <h2 id="confirm-title">Excluir lançamento?</h2>
+        <p id="confirm-message">Esta ação não poderá ser desfeita.</p>
+        <div class="dialog-actions">
+            <button class="ghost-button" value="cancel">Cancelar</button>
+            <button class="danger-button" id="confirm-action" value="confirm">Excluir</button>
+        </div>
+    </form>
+</dialog>
+
+<div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+<svg class="svg-sprite" aria-hidden="true">
+    <symbol id="icon-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></symbol>
+    <symbol id="icon-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v5h14v-5"/></symbol>
+    <symbol id="icon-spark" viewBox="0 0 24 24"><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3Z"/></symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="icon-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2 5.3M20 4v7h-7"/></symbol>
+    <symbol id="icon-arrow-down" viewBox="0 0 24 24"><path d="M12 4v16m0 0 6-6m-6 6-6-6"/></symbol>
+    <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3V11Z"/></symbol>
+    <symbol id="icon-wallet" viewBox="0 0 24 24"><path d="M4 6h15v14H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h13"/><path d="M15 11h6v5h-6a2.5 2.5 0 0 1 0-5Z"/></symbol>
+    <symbol id="icon-leaf" viewBox="0 0 24 24"><path d="M20 4C11 4 5 8 5 15c0 3 2 5 5 5 7 0 10-7 10-16Z"/><path d="M4 21c3-6 7-9 12-12"/></symbol>
+    <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></symbol>
+    <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="icon-file" viewBox="0 0 24 24"><path d="M6 2h8l5 5v15H6V2Z"/><path d="M14 2v6h5"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.01"/></symbol>
+    <symbol id="icon-sliders" viewBox="0 0 24 24"><path d="M4 7h10m4 0h2M4 17h2m4 0h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L19 9l-4-4L4 16Z"/><path d="m13 7 4 4"/></symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M7 7l1 14h8l1-14m-7-3h4l1 3H9l1-3Z"/></symbol>
+</svg>
+<script src="/js/app.js" defer></script>
+<script src="/vendor/alpine-3.15.2.min.js" defer></script>
+</body>
+</html>

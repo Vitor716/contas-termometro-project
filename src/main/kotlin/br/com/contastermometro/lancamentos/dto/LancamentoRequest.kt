@@ -12,6 +12,8 @@ data class LancamentoRequest(
     @field:NotNull
     val tipo: TipoLancamento,
 
+    var idLote: String? = null,
+
     @field:NotBlank
     val descricao: String,
 

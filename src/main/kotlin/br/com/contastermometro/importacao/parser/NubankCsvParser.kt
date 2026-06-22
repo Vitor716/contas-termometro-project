@@ -5,7 +5,6 @@ import br.com.contastermometro.importacao.dto.ResultadoImportacao
 import br.com.contastermometro.lancamentos.dto.LancamentoRequest
 import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeParseException
@@ -52,14 +51,13 @@ class NubankCsvParser() : ExtratoParser {
      * Segue o princípio de "Fail Fast" (lança exceção na primeira inconsistência).
      */
     private fun processarLinha(linha: String): LancamentoRequest {
-        val colunas = linha.split(",")
+        val colunas = linha.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex())
 
-        require(colunas.size >= 4) { "A linha não contém as 4 colunas obrigatórias" }
+        require(colunas.size >= 3) { "A linha contém apenas ${colunas.size} colunas. Esperado no mínimo 3." }
 
         val dataRaw = colunas[0].trim()
         val descricaoRaw = colunas[1].trim()
-        val valorRaw = colunas[2].trim().replace("\"", "")
-        val categoriaRaw = colunas[3].trim()
+        val valorRaw = colunas[2].trim()
 
         require(descricaoRaw.isNotBlank()) { "A descrição não pode estar vazia" }
 
@@ -69,25 +67,32 @@ class NubankCsvParser() : ExtratoParser {
             throw IllegalArgumentException("Formato de data inválido. Esperado YYYY-MM-DD, recebido: '$dataRaw'")
         }
 
-        val valorParsed = valorRaw.toBigDecimalOrNull()
+        val valorLimpo = valorRaw.replace("\"", "").replace(" ", "").replace("R$", "")
+
+        val valorSanitizado = seTiverVirgulaFormatarParaBrasileiro(valorLimpo)
+
+        val valorParsed = valorSanitizado.toBigDecimalOrNull()
             ?: throw IllegalArgumentException("Valor numérico inválido: '$valorRaw'")
 
         val valorAbsoluto = valorParsed.abs()
 
-        val tipoInferido = if (valorParsed < BigDecimal.ZERO) {
-            TipoLancamento.GASTO_DIARIO
-        } else {
-            TipoLancamento.ENTRADA
-        }
-
         return LancamentoRequest(
-            tipo = tipoInferido,
+            tipo = TipoLancamento.GASTO_DIARIO,
             descricao = descricaoRaw,
             valor = valorAbsoluto,
             data = dataParsed,
             mesReferencia = YearMonth.from(dataParsed).toString(),
-            categoria = categoriaRaw.ifBlank { "Sem Categoria" },
+            categoria = "Cartão Nubank",
             observacao = "Importação Nubank CSV"
         )
+    }
+
+    private fun seTiverVirgulaFormatarParaBrasileiro(valor: String): String {
+        if (valor.contains(",")) {
+            return valor
+                .replace(".", "")
+                .replace(",", ".")
+        }
+        return valor
     }
 }

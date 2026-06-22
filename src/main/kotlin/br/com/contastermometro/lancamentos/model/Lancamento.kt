@@ -22,6 +22,9 @@ class Lancamento(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 
+    @Column(name = "id_lote", length = 100)
+    var idLote: String? = null,
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     var tipo: TipoLancamento = TipoLancamento.GASTO_DIARIO,

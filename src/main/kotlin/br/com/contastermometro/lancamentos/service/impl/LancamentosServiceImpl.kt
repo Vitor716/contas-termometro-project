@@ -34,6 +34,11 @@ class LancamentosServiceImpl(
         return entities.map { it.toResponse() }
     }
 
+    override fun listarImportacao(idLote: String): List<LancamentoResponse> {
+        val entities = repository.findByIdLote(idLote)
+        return entities.map { it.toResponse() }
+    }
+
     override fun remover(id: Long) {
         val lancamento = buscar(id)
         repository.deleteById(lancamento.id)

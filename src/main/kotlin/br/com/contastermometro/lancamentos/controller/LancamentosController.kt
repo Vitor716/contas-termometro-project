@@ -33,6 +33,12 @@ class LancamentosController(
         return ResponseEntity.ok(lancamentosService.listarPorMes(mesRaw))
     }
 
+    @GetMapping("/lote")
+    fun listarImportacao(idLote: String) : ResponseEntity<List<LancamentoResponse>>{
+        val importacao = lancamentosService.listarImportacao(idLote)
+        return ResponseEntity.ok(importacao)
+    }
+
     @DeleteMapping("/{id}")
     fun remover(@PathVariable id: Long): ResponseEntity<LancamentoResponse> {
         lancamentosService.remover(id)

@@ -7,7 +7,8 @@ import java.time.YearMonth
 interface LancamentosService {
 	fun criar(req: LancamentoRequest): LancamentoResponse
 	fun buscar(id: Long): LancamentoResponse
-	fun remover(id: Long)
 	fun listarPorMes(mesRaw: YearMonth): List<LancamentoResponse>
+	fun listarImportacao(idLote: String) : List<LancamentoResponse>
+	fun remover(id: Long)
 	fun editar(id: Long, req: LancamentoRequest): LancamentoResponse
 }

@@ -7,6 +7,7 @@ import java.time.LocalDate
 
 data class LancamentoResponse(
     var id: Long,
+    var idLote: String? = null,
     var tipo: TipoLancamento,
     var descricao: String,
     var valor: BigDecimal,
@@ -19,6 +20,7 @@ data class LancamentoResponse(
 fun Lancamento.toResponse(): LancamentoResponse {
     return LancamentoResponse(
         id = id ?: 0,
+        idLote = this.idLote,
         tipo = tipo,
         descricao = descricao,
         valor = BigDecimal(valorCentavos).movePointLeft(2),
@@ -32,6 +34,7 @@ fun Lancamento.toResponse(): LancamentoResponse {
 fun LancamentoRequest.toModel(): Lancamento {
     return Lancamento(
         tipo = this.tipo,
+        idLote = this.idLote,
         descricao = this.descricao,
         valorCentavos = this.valor.movePointRight(2).toLong(),
         dataLancamento = this.data.toString(),

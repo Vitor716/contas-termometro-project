@@ -1,6 +1,7 @@
 const API = {
     entries: "/api/lancamentos",
     summary: "/api/orcamento",
+    annualSummary: "/api/orcamento/anual",
     imports: "/api/importacao",
     metas: "/api/configuracao/metas"
 };
@@ -202,9 +203,9 @@ function changeAnnualYear(offset) {
 async function loadAnnual() {
     setAnnualLoading(true);
     try {
-        state.annualMonths = await Promise.all(
-            Array.from({ length: 12 }, (_, index) => loadAnnualMonth(state.annualYear, index + 1))
-        );
+        const response = await apiFetch(`${API.annualSummary}?ano=${state.annualYear}`);
+
+        state.annualMonths = response.meses || [];
         renderAnnual();
     } catch (error) {
         state.annualMonths = [];
@@ -213,43 +214,6 @@ async function loadAnnual() {
     } finally {
         setAnnualLoading(false);
     }
-}
-
-async function loadAnnualMonth(year, monthNumber) {
-    const month = `${year}-${String(monthNumber).padStart(2, "0")}`;
-    const entries = await apiFetch(`${API.entries}?mes=${month}`);
-    if (!Array.isArray(entries) || entries.length === 0) {
-        return { month, entriesCount: 0, ...emptySummary() };
-    }
-    const lastDay = new Date(year, monthNumber, 0).getDate();
-    let summary;
-    try {
-        summary = await apiFetch(`${API.summary}?mes=${month}-${String(lastDay).padStart(2, "0")}`);
-    } catch {
-        summary = summarizeEntriesForAnnual(entries);
-    }
-    return { month, entriesCount: entries.length, ...summary };
-}
-
-function summarizeEntriesForAnnual(entries) {
-    const sumByType = type => entries
-        .filter(entry => entry.tipo === type)
-        .reduce((sum, entry) => sum + number(entry.valor), 0);
-    const income = sumByType("ENTRADA");
-    const fixed = sumByType("SAIDA_FIXA");
-    const daily = sumByType("GASTO_DIARIO");
-    const invested = sumByType("INVESTIMENTO");
-    const out = fixed + daily;
-    return {
-        ...emptySummary(),
-        somaEntradas: income,
-        somaSaidasFixas: fixed,
-        totalGastoDiario: daily,
-        totalInvestido: invested,
-        saidaTotal: out,
-        saldoMes: income - out,
-        porcentagemInvestida: income > 0 ? invested / income * 100 : 0
-    };
 }
 
 function emptySummary() {

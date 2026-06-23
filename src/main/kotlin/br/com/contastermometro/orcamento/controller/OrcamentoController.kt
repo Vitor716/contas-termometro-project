@@ -1,5 +1,6 @@
 package br.com.contastermometro.orcamento.controller
 
+import br.com.contastermometro.orcamento.dto.ResumoAnualResponse
 import br.com.contastermometro.orcamento.dto.ResumoMensal
 import br.com.contastermometro.orcamento.service.OrcamentoService
 import org.springframework.format.annotation.DateTimeFormat
@@ -21,5 +22,10 @@ class OrcamentoController (
         @DateTimeFormat(pattern = "yyyy-MM-dd")
         @RequestParam("mes") mesRaw: LocalDate): ResponseEntity<ResumoMensal> {
      return ResponseEntity.ok(orcamentoService.gerarResumoMensal(mesRaw));
+    }
+
+    @GetMapping("/anual")
+    fun gerarResumoAnual(@RequestParam("ano") ano: Int): ResponseEntity<ResumoAnualResponse> {
+        return ResponseEntity.ok(orcamentoService.gerarResumoAnual(ano))
     }
 }

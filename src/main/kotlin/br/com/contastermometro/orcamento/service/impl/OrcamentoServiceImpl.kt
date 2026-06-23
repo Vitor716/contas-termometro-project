@@ -5,6 +5,8 @@ import br.com.contastermometro.lancamentos.service.LancamentosService
 import br.com.contastermometro.orcamento.domain.CalculadoraFluxoCaixa
 import br.com.contastermometro.orcamento.domain.CalculadoraGastoDiario
 import br.com.contastermometro.orcamento.domain.CalculadoraInvestimentos
+import br.com.contastermometro.orcamento.dto.ResumoAnualMesItem
+import br.com.contastermometro.orcamento.dto.ResumoAnualResponse
 import br.com.contastermometro.orcamento.dto.ResumoMensal
 import br.com.contastermometro.orcamento.service.OrcamentoService
 import org.springframework.stereotype.Service
@@ -51,6 +53,43 @@ class OrcamentoServiceImpl (
             performanceContraMeta =  performance,
             gastoDiarioEsperadoAtual =  gastoDiarioEsperadoAtual,
             gastoDiarioRestante =  gastoDiarioRestante
+        )
+    }
+
+    override fun gerarResumoAnual(ano: Int): ResumoAnualResponse {
+        val mesesItems = (1..12).map { mes ->
+            val yearMonth = YearMonth.of(ano, mes)
+            val lancamentos = lancamentosService.listarPorMes(yearMonth)
+
+            val entradas = CalculadoraFluxoCaixa.calcularSomaEntradas(lancamentos)
+            val saidasFixas = CalculadoraFluxoCaixa.calcularSomaSaidasFixas(lancamentos)
+            val gastoDiarioTotal = CalculadoraGastoDiario.calcularTotalGastoDiario(lancamentos)
+            val totalInvestido = CalculadoraInvestimentos.calcularTotalInvestido(lancamentos)
+
+            val saidaTotal = CalculadoraFluxoCaixa.calcularSaidaTotal(saidasFixas, gastoDiarioTotal, totalInvestido)
+            val saldo = CalculadoraFluxoCaixa.calcularSaldoDoMes(entradas, saidaTotal, CalculadoraFluxoCaixa.calcularSomaAjustes(lancamentos))
+            val porcentagemInvestida = CalculadoraInvestimentos.calcularPorcentagemInvestida(totalInvestido, entradas)
+
+            ResumoAnualMesItem(
+                month = yearMonth.toString(),
+                entriesCount = lancamentos.size,
+                somaEntradas = entradas,
+                somaSaidasFixas = saidasFixas,
+                totalGastoDiario = gastoDiarioTotal,
+                totalInvestido = totalInvestido,
+                saidaTotal = saidaTotal,
+                saldoMes = saldo,
+                porcentagemInvestida = porcentagemInvestida
+            )
+        }
+
+        return ResumoAnualResponse(
+            ano = ano,
+            totalEntradas = mesesItems.sumOf { it.somaEntradas },
+            saidaTotal = mesesItems.sumOf { it.saidaTotal },
+            totalInvestido = mesesItems.sumOf { it.totalInvestido },
+            saldoAcumulado = mesesItems.sumOf { it.saldoMes },
+            meses = mesesItems
         )
     }
 }

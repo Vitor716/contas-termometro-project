@@ -114,7 +114,7 @@ Critérios de aceite:
 - o caminho do banco pode ser configurado;
 - `git status` não mostra dados pessoais.
 
-## MVP 1 - Lançamentos manuais confiáveis — 🟡
+## MVP 1 - Lançamentos manuais confiáveis — ✅
 
 Objetivo: substituir a entrada manual da planilha.
 

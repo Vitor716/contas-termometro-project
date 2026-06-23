@@ -1,10 +1,11 @@
 const API = {
     entries: "/api/lancamentos",
     summary: "/api/orcamento",
-    imports: "/api/importacao"
+    imports: "/api/importacao",
+    metas: "/api/configuracao/metas"
 };
 
-const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao"]);
+const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas"]);
 
 const TYPE_META = {
     ENTRADA: { label: "Entrada", className: "income", icon: "icon-arrow-down", sign: 1 },
@@ -41,6 +42,7 @@ document.addEventListener("alpine:init", () => {
                 this.sidebarOpen = false;
                 if (this.view === "importacao") loadImports();
                 if (this.view === "anual") loadAnnual();
+                if (this.view === "metas") loadMetaDoMes();
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         },
@@ -73,9 +75,106 @@ function init() {
     bindImport();
     bindAnnual();
     bindConfirmation();
+    bindMetaForm();
     updateMonthLabels();
     loadMonth();
     checkHealth();
+}
+
+function bindMetaForm() {
+    byId("meta-form").addEventListener("submit", salvarMeta);
+}
+
+async function loadMetaDoMes() {
+    setMetaLoading(true);
+    try {
+        const meta = await apiFetch(`${API.metas}?mes=${state.month}`);
+        if (meta) {
+            byId("meta-id").value = meta.id;
+
+            byId("meta-percentual").value = (number(meta.percentualMetaInvestimento) * 100).toString().replace(".", ",");
+            byId("meta-diario-minimo").value = number(meta.orcamentoDiarioMinimo).toString().replace(".", ",");
+            byId("meta-motivo").value = meta.motivo || "";
+            setText("meta-status-vigencia", `Meta ativa vigente desde: ${formatarDataIso(meta.vigenteDesde)}`);
+        } else {
+            limparFormularioMeta();
+        }
+    } catch (error) {
+        limparFormularioMeta();
+        if (!error.message.includes("404")) {
+            toast("Erro ao carregar meta do mês.", "error");
+        }
+    } finally {
+        setMetaLoading(false);
+    }
+}
+
+function limparFormularioMeta() {
+    byId("meta-form").reset();
+    byId("meta-id").value = "";
+    setText("meta-status-vigencia", "Nenhuma meta customizada definida para este mês. Usando padrão (20%).");
+}
+
+function setMetaLoading(loading) {
+    byId("meta-loading").hidden = !loading;
+    byId("meta-content").hidden = loading;
+}
+
+async function salvarMeta(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type='submit']");
+    const originalText = button.innerHTML;
+
+    const id = byId("meta-id").value;
+    const percentualRaw = parseMoney(byId("meta-percentual").value) / 100;
+    const diarioMinimoRaw = parseMoney(byId("meta-diario-minimo").value);
+
+    if (percentualRaw < 0 || percentualRaw > 1) {
+        toast("O percentual deve estar entre 0% e 100%.", "error");
+        return;
+    }
+
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner"></span> Salvando...`;
+
+    const payload = {
+        percentualMetaInvestimento: percentualRaw,
+        orcamentoDiarioMinimo: diarioMinimoRaw,
+        motivo: nullIfBlank(byId("meta-motivo").value)
+    };
+
+    const url = id ? `${API.metas}/${id}` : `${API.metas}?mes=${state.month}`;
+    const method = id ? "PUT" : "POST";
+
+    try {
+        await apiFetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        toast(id ? "Meta mensal atualizada com sucesso." : "Meta mensal parametrizada com sucesso.");
+
+        await loadMetaDoMes();
+        await loadMonth();
+    } catch (error) {
+        toast(error.message || "Não foi possível salvar a meta.", "error");
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+function formatarDataIso(isoString) {
+    if (!isoString) return "—";
+    const date = new Date(isoString);
+    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date);
+}
+
+// Correção do normalizeRate para respeitar a ADR 0012 (percentual puro 0..1)
+function normalizeRate(value) {
+    return number(value);
 }
 
 function bindAnnual() {
@@ -814,11 +913,6 @@ function money(value) {
 
 function percent(value) {
     return percentFormatter.format(number(value));
-}
-
-function normalizeRate(value) {
-    const numeric = number(value);
-    return numeric > 2 ? numeric / 100 : numeric;
 }
 
 function number(value) {

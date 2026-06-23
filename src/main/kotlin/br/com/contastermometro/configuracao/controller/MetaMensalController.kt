@@ -16,20 +16,29 @@ class MetaMensalController(
 ) {
 
     @GetMapping
-    fun buscarMeta(
+    fun buscar(
         @DateTimeFormat(pattern = "yyyy-MM")
         @RequestParam("mes") mesRaw: YearMonth
     ): ResponseEntity<MetaMensalResponse> {
-        return ResponseEntity.ok(metaMensalService.buscarMetaVigente(mesRaw))
+        return ResponseEntity.ok(metaMensalService.buscar(mesRaw))
     }
 
     @PostMapping
-    fun definirMeta(
+    fun definir(
         @DateTimeFormat(pattern = "yyyy-MM")
         @RequestParam("mes") mesRaw: YearMonth,
         @Valid @RequestBody request: MetaMensalRequest
     ): ResponseEntity<MetaMensalResponse> {
-        val novaMeta = metaMensalService.definirMeta(mesRaw, request)
+        val novaMeta = metaMensalService.definir(mesRaw, request)
         return ResponseEntity.ok(novaMeta)
+    }
+
+    @PutMapping("/{id}")
+    fun editar(
+        @PathVariable("id") id: Long,
+        @Valid @RequestBody request: MetaMensalRequest
+    ): ResponseEntity<MetaMensalResponse> {
+        val metaAtualizada = metaMensalService.editar(id, request)
+        return ResponseEntity.ok(metaAtualizada)
     }
 }

@@ -5,6 +5,7 @@ import br.com.contastermometro.configuracao.dto.MetaMensalResponse
 import java.time.YearMonth
 
 interface MetaMensalService {
-    fun definirMeta(mesRaw: YearMonth, request: MetaMensalRequest): MetaMensalResponse
-    fun buscarMetaVigente(mesRaw: YearMonth): MetaMensalResponse
+    fun definir(mesRaw: YearMonth, request: MetaMensalRequest): MetaMensalResponse
+    fun buscar(mesRaw: YearMonth): MetaMensalResponse
+    fun editar(id: Long, request: MetaMensalRequest): MetaMensalResponse
 }

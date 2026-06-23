@@ -26,7 +26,7 @@ class OrcamentoServiceImpl (
 
         val totalInvestido = CalculadoraInvestimentos.calcularTotalInvestido(lancamentos)
         val porcentagemInvestida = CalculadoraInvestimentos.calcularPorcentagemInvestida(totalInvestido, entradas)
-        val metaInvestimento = metaMensalService.buscarMetaVigente(yearMonth)
+        val metaInvestimento = metaMensalService.buscar(yearMonth)
         val performance = CalculadoraInvestimentos.calcularPerformanceContraMeta(porcentagemInvestida, metaInvestimento.percentualMetaInvestimento)
 
         val gastoDiarioTotal = CalculadoraGastoDiario.calcularTotalGastoDiario(lancamentos)

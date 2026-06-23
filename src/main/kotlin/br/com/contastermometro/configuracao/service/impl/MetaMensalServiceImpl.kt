@@ -14,7 +14,7 @@ class MetaMensalServiceImpl (
     private val repository: MetaMensalRepository
 ) : MetaMensalService {
 
-    override fun definirMeta(
+    override fun definir(
         mesRaw: YearMonth,
         request: MetaMensalRequest
     ): MetaMensalResponse {
@@ -23,10 +23,20 @@ class MetaMensalServiceImpl (
         return saved.toResponse()
     }
 
-    override fun buscarMetaVigente(mesRaw: YearMonth): MetaMensalResponse {
+    override fun buscar(mesRaw: YearMonth): MetaMensalResponse {
         val mes = mesRaw.toString()
-        val entity = repository.findByMesReferencia(mes)
-            ?: throw IllegalArgumentException("Meta mensal para o mês $mes não encontrada.")
+        val entity = repository.findByMesReferencia(mes) ?: throw IllegalArgumentException("Meta mensal para o mês $mes não encontrada.")
         return entity.toResponse()
+    }
+
+    override fun editar(id: Long, request: MetaMensalRequest): MetaMensalResponse {
+        val updatedEntity = repository.findById(id).orElseThrow { IllegalArgumentException("Meta mensal com id $id não encontrada.") }.apply {
+            percentualMetaInvestimentoBps = request.percentualMetaInvestimento.movePointRight(4).toInt()
+            orcamentoDiarioMinimoCentavos = request.orcamentoDiarioMinimo.movePointRight(2).toLong()
+            motivo = request.motivo
+        }
+
+        val saved = repository.save(updatedEntity)
+        return saved.toResponse()
     }
 }

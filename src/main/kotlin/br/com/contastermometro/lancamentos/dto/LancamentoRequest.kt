@@ -4,7 +4,6 @@ import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Pattern
-import jakarta.validation.constraints.Positive
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -18,7 +17,6 @@ data class LancamentoRequest(
     val descricao: String,
 
     @field:NotNull
-    @field:Positive
     val valor: BigDecimal,
 
     @field:NotNull

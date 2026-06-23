@@ -24,7 +24,7 @@ class MetaMensalServiceImpl (
     }
 
     override fun buscarMetaVigente(mesRaw: YearMonth): MetaMensalResponse {
-        val mes =mesRaw.toString()
+        val mes = mesRaw.toString()
         val entity = repository.findByMesReferencia(mes)
             ?: throw IllegalArgumentException("Meta mensal para o mês $mes não encontrada.")
         return entity.toResponse()

@@ -30,7 +30,7 @@ class LancamentosServiceImpl(
 
     override fun listarPorMes(mesRaw: YearMonth): List<LancamentoResponse> {
         val mes = mesRaw.toString()
-        val entities = repository.findByMesReferencia(mes)
+        val entities = repository.findAllByMesReferenciaAndStatusOrderByDataLancamentoAscIdAsc(mes)
         return entities.map { it.toResponse() }
     }
 
@@ -46,6 +46,8 @@ class LancamentosServiceImpl(
 
     override fun editar(id: Long, req: LancamentoRequest): LancamentoResponse {
         val updatedEntity = repository.findById(id).orElseThrow { LancamentoNaoEncontradoException("Lançamento com id $id não encontrado.") }.apply {
+            idLote = req.idLote
+            tipo = req.tipo
             descricao = req.descricao
             valorCentavos = req.valor.movePointRight(2).toLong()
             dataLancamento = req.data.toString()

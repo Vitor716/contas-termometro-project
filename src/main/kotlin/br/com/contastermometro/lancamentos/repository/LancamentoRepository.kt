@@ -12,8 +12,6 @@ interface LancamentoRepository : JpaRepository<Lancamento, Long> {
         status: StatusLancamento = StatusLancamento.ATIVO,
     ): List<Lancamento>
 
-    fun findByMesReferencia(mesReferencia: String): List<Lancamento>
-
     fun findByIdLote(idLote: String): List<Lancamento>
 
     @Modifying

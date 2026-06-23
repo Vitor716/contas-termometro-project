@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
@@ -17,7 +18,7 @@ class GlobalExceptionHandler {
         private val LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
     }
 
-    @ExceptionHandler(LancamentoNaoEncontradoException::class)
+    @ExceptionHandler(LancamentoNaoEncontradoException::class, MethodArgumentNotValidException::class)
     fun handleLancamentoNaoEncontradoException(
         ex: LancamentoNaoEncontradoException,
         request: HttpServletRequest

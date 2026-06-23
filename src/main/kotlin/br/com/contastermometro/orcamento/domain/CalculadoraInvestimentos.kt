@@ -19,10 +19,6 @@ object CalculadoraInvestimentos {
         return totalInvestido.divide(somaEntradas, 2, RoundingMode.HALF_UP)
     }
 
-    fun buscarMetaDeInvestimento(): BigDecimal {
-        return BigDecimal("0.20")
-    }
-
     fun calcularPerformanceContraMeta(porcentagemInvestida: BigDecimal, meta: BigDecimal): BigDecimal {
         return porcentagemInvestida.minus(meta)
     }

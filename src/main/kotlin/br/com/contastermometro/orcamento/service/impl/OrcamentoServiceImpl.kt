@@ -1,5 +1,6 @@
 package br.com.contastermometro.orcamento.service.impl
 
+import br.com.contastermometro.configuracao.service.MetaMensalService
 import br.com.contastermometro.lancamentos.service.LancamentosService
 import br.com.contastermometro.orcamento.domain.CalculadoraFluxoCaixa
 import br.com.contastermometro.orcamento.domain.CalculadoraGastoDiario
@@ -12,7 +13,8 @@ import java.time.YearMonth
 
 @Service
 class OrcamentoServiceImpl (
-    private val lancamentosService: LancamentosService
+    private val lancamentosService: LancamentosService,
+    private val metaMensalService: MetaMensalService
 ) : OrcamentoService {
 
     override fun gerarResumoMensal(mesRaw: LocalDate): ResumoMensal {
@@ -24,8 +26,8 @@ class OrcamentoServiceImpl (
 
         val totalInvestido = CalculadoraInvestimentos.calcularTotalInvestido(lancamentos)
         val porcentagemInvestida = CalculadoraInvestimentos.calcularPorcentagemInvestida(totalInvestido, entradas)
-        val metaInvestimento = CalculadoraInvestimentos.buscarMetaDeInvestimento()
-        val performance = CalculadoraInvestimentos.calcularPerformanceContraMeta(porcentagemInvestida, metaInvestimento)
+        val metaInvestimento = metaMensalService.buscarMetaVigente(yearMonth)
+        val performance = CalculadoraInvestimentos.calcularPerformanceContraMeta(porcentagemInvestida, metaInvestimento.percentualMetaInvestimento)
 
         val gastoDiarioTotal = CalculadoraGastoDiario.calcularTotalGastoDiario(lancamentos)
 
@@ -45,7 +47,7 @@ class OrcamentoServiceImpl (
             saidaTotal =  saidaTotal,
             saldoMes =  saldo,
             porcentagemInvestida =  porcentagemInvestida,
-            metaInvestimento =  metaInvestimento,
+            metaInvestimento =  metaInvestimento.percentualMetaInvestimento,
             performanceContraMeta =  performance,
             gastoDiarioEsperadoAtual =  gastoDiarioEsperadoAtual,
             gastoDiarioRestante =  gastoDiarioRestante

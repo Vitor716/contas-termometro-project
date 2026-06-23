@@ -124,6 +124,7 @@ Entregáveis:
 - filtro mensal e vínculo opcional a lote; ✅
 - validações de valor, data e mês; 🟡
 - erros legíveis; 🟡
+- recorrencia mensal manual para `ENTRADA` e `SAIDA_FIXA`;
 - testes de service e controller;
 - corrigir ou remover teste legado de mapper;
 - decidir se exclusão será física ou por `status`;
@@ -148,6 +149,7 @@ Entregáveis:
 7. Corrigir textos com encoding inválido.
 8. Criar testes de service e controller.
 9. Remover ou reescrever `LancamentosMapperImplTest`, que referencia classe inexistente.
+10. Implementar recorrencias mensais manuais para entradas e saidas fixas, conforme ADR 0014.
 
 ### Ordem sugerida
 
@@ -338,6 +340,7 @@ Entregáveis:
 
 - grupo de parcelamento;
 - cadastro manual de compra parcelada;
+- recorrencias vigentes consideradas nas projeções futuras;
 - parcela atual e total;
 - projeções futuras separadas de lançamentos realizados;
 - aba de parcelas;
@@ -350,6 +353,7 @@ Critérios de aceite:
 - edição de uma parcela preserva histórico;
 - cancelamento e antecipação têm semântica definida;
 - consultor considera parcelas existentes.
+- consultor considera entradas e saidas fixas recorrentes ainda vigentes.
 
 ## MVP 7 - Resumo anual — 🟡
 

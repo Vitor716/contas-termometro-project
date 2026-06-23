@@ -35,6 +35,7 @@ Mesmo simples, a interface deve ser bonita, clara e funcional.
 Prioridades:
 
 - lancar entrada, saida fixa, diario, investimento e ajuste de saldo rapidamente;
+- marcar entrada ou saida fixa como recorrente quando fizer sentido;
 - visualizar resumo mensal sem ruido;
 - mostrar percentuais e performance de forma direta;
 - simular compra a vista ou parcelada com explicacao;
@@ -69,6 +70,31 @@ Primeiras telas:
 - Parcelas e projecoes.
 - Resumo anual.
 - Importacao CSV inteligente, em MVP posterior.
+
+### Recorrencias
+
+O formulario de lancamento deve permitir marcar recorrencia apenas para:
+
+- `ENTRADA`;
+- `SAIDA_FIXA`.
+
+Campos esperados:
+
+- recorrente: sim/nao;
+- inicio da recorrencia;
+- dia preferencial;
+- fim opcional;
+- frequencia mensal no MVP.
+
+Ao editar ou excluir um lancamento originado de recorrencia, a interface deve pedir o escopo da acao:
+
+- somente este mes;
+- este e proximos meses;
+- toda a serie, quando permitido.
+
+A listagem mensal deve indicar quando um lancamento veio de recorrencia. Essa indicacao nao deve competir com tipo, categoria e valor; pode ser um pequeno selo ou texto auxiliar.
+
+O dashboard nao deve recalcular recorrencias no navegador. A tela deve consumir os lancamentos/resumos ja resolvidos pelo backend.
 
 ### Visão anual
 

@@ -36,7 +36,9 @@ Nao e um produto multiempresa, nao e contabilidade formal e nao e recomendacao d
 Entram no MVP:
 
 - Entradas de dinheiro.
+- Entradas recorrentes, como salario ou renda fixa mensal.
 - Saidas fixas.
+- Saidas fixas recorrentes, como aluguel, internet e assinaturas.
 - Gastos diarios/debito.
 - Lancamentos de investimento/economia.
 - Saldo de fechamento ou ajuste.
@@ -66,7 +68,24 @@ Ficam fora no inicio:
 - Parcela: compromisso de uma compra dividido em meses, vinculado a um grupo de parcelamento.
 - Projecao: valor esperado em mês futuro; não equivale a lançamento realizado.
 - Recorrencia: padrão observado em meses distintos que pode sugerir saída fixa.
+- Lancamento recorrente: entrada ou saida fixa marcada pelo usuario para repetir automaticamente nos meses futuros ate ser alterada, encerrada ou cancelada.
+- Entrada fixa: entrada recorrente previsivel, como salario, bolsa ou aluguel recebido.
 - Sugestao: classificação proposta pelo sistema, com confiança e evidências, ainda não confirmada.
+
+## Recorrencias manuais
+
+O usuario deve poder marcar algumas entradas e saidas fixas como recorrentes.
+
+Comportamento esperado:
+
+- a recorrencia vale para o mes atual e meses seguintes;
+- se nao houver data de fim, continua indefinidamente;
+- alterar uma recorrencia nao deve modificar meses anteriores sem confirmacao explicita;
+- editar uma ocorrencia deve permitir escolher entre `somente este mes` e `este e proximos meses`;
+- excluir uma ocorrencia deve permitir remover apenas o mes ou encerrar a recorrencia a partir daquele mes;
+- lancamentos gerados por recorrencia devem aparecer na lista mensal como lancamentos normais, mas com indicacao de origem recorrente.
+
+No MVP, a recorrencia deve ser manual e explicita. Deteccao automatica por importacao pode sugerir recorrencias no futuro, mas nao deve ativar uma serie sem confirmacao do usuario.
 
 ## Pergunta central do consultor
 

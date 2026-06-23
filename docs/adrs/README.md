@@ -17,6 +17,7 @@ ADRs registram decisões e consequências. Tarefas, bugs e critérios de conclus
 | [0011](0011-ciclo-de-vida-e-exclusao-de-lancamentos.md) | Proposta | Cancelamento lógico | MVP 1 |
 | [0012](0012-semantica-oficial-dos-resumos-financeiros.md) | Proposta | Fórmulas e DTO mensal | MVP 2 |
 | [0013](0013-resumo-anual-calculado-no-backend.md) | Proposta | Agregação anual | MVP 7 |
+| [0014](0014-recorrencia-de-lancamentos.md) | Proposta | Recorrência de lançamentos | MVP 1 e 6 |
 
 ## Regra de atualização
 

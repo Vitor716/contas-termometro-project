@@ -57,6 +57,8 @@ data
 mes_referencia
 categoria
 observacao
+recorrencia_id
+recorrencia_excecao
 grupo_parcelamento_id
 parcela_atual
 total_parcelas
@@ -73,6 +75,54 @@ Tipos:
 - `GASTO_DIARIO`
 - `INVESTIMENTO`
 - `AJUSTE_SALDO`
+
+Campos de recorrencia:
+
+- `recorrencia_id`: referencia opcional para a serie que gerou o lancamento.
+- `recorrencia_excecao`: indica que a ocorrencia foi alterada apenas naquele mes e nao deve ser sobrescrita por atualizacoes futuras da serie.
+
+### `recorrencias_lancamento`
+
+Representa uma regra recorrente de entrada ou saida fixa.
+
+```text
+id
+tipo
+descricao
+valor
+categoria
+observacao
+mes_inicio
+mes_fim
+dia_preferencial
+frequencia
+status
+origem
+criado_em
+atualizado_em
+```
+
+Tipos permitidos no MVP:
+
+- `ENTRADA`
+- `SAIDA_FIXA`
+
+Frequencias permitidas no MVP:
+
+- `MENSAL`
+
+Status sugeridos:
+
+- `ATIVA`
+- `ENCERRADA`
+- `CANCELADA`
+
+Regras:
+
+- uma recorrencia ativa sem `mes_fim` vale indefinidamente;
+- `mes_fim` encerra a geracao a partir dos meses posteriores;
+- alteracoes em meses futuros devem criar nova versao ou atualizar a serie preservando historico anterior;
+- uma ocorrencia mensal deve ser unica por `recorrencia_id + mes_referencia`.
 
 ### `metas_mensais`
 
@@ -187,6 +237,8 @@ estrategia
 - índice único em `pre_visualizacao_id + hash_linha`;
 - índice de busca em `mes_referencia + fingerprint`;
 - índice em `grupo_parcelamento_id`;
+- indice unico em `recorrencia_id + mes_referencia` quando `recorrencia_id` nao for nulo;
+- indice em `mes_inicio + mes_fim + status` para localizar recorrencias vigentes;
 - regras não devem sobrescrever histórico sem auditoria.
 
 ## Sobre usar Git como banco

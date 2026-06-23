@@ -19,6 +19,7 @@ Glossário (mapeamento para modelos do código)
 Princípios e Assunções
 
 - Somamos lançamentos filtrando por `mesReferencia` (ex: `2026-06`) para cálculos mensais.
+- Antes de calcular um mes, recorrencias vigentes de `ENTRADA` e `SAIDA_FIXA` devem estar materializadas ou consideradas como projecao daquele mes.
 - `AJUSTE_SALDO` é aplicado apenas para ajustar o saldo do mês quando há diferença entre o saldo calculado e o saldo real (por exemplo, saldo em conta). Em cálculos de disponibilidade operacional preferimos usar `soma(AJUSTE_SALDO)` apenas no `saldoMes` e não nas métricas de gasto operacional.
 - Divisões por zero: quando `totalEntradas == 0`, percentuais que dependam de `totalEntradas` devem retornar `0` ou `null` de forma documentada (ver seção de validação abaixo).
 - Datas: `diasDoMes` é o número de dias do mês de `mesReferencia` (ex.: junho tem 30 dias). `diaDoMes` é o dia atual relativo ao mês (1..diasDoMes) — para comparações acumuladas usamos a data de execução do cálculo.
@@ -54,6 +55,41 @@ Calculo:
 - saidaSemInvestimento = 3.000 + 2.000 = 5.000
 - saidaTotal = 5.000 + 1.500 = 6.500
 - saldoMes = 10.000 - 6.500 - 50 = 3.450,00
+
+### 1.1) Recorrencias no resumo mensal
+
+Objetivo: entradas fixas e saidas fixas recorrentes devem participar automaticamente dos resumos dos meses futuros.
+
+Tipos aceitos no MVP:
+
+- `ENTRADA`;
+- `SAIDA_FIXA`.
+
+Regra:
+
+- para o mes `M`, localizar recorrencias ativas com `mes_inicio <= M` e (`mes_fim` vazio ou `mes_fim >= M`);
+- gerar ou considerar uma ocorrencia por recorrencia vigente;
+- nao gerar ocorrencia duplicada se ja existir lancamento com `recorrencia_id + mes_referencia`;
+- ocorrencias recorrentes entram nas mesmas somas dos lancamentos manuais;
+- excecoes de um mes prevalecem sobre a regra da serie naquele mes.
+
+Exemplo:
+
+- salario recorrente de 8.000 a partir de `2026-06`;
+- internet recorrente de 120 a partir de `2026-06`;
+- ao consultar `2026-08`, o resumo deve incluir 8.000 em `totalEntradas` e 120 em `totalSaidasFixas`, mesmo que o usuario ainda nao tenha cadastrado manualmente esse mes.
+
+Edicao:
+
+- `somente este mes`: altera apenas a ocorrencia e marca como excecao;
+- `este e proximos meses`: altera a regra a partir de `M`, preservando meses anteriores;
+- `toda a serie`: deve exigir confirmacao quando afetar historico.
+
+Exclusao:
+
+- remover somente o mes exclui ou cancela a ocorrencia;
+- encerrar a recorrencia define fim da serie a partir de `M`;
+- lancamentos passados nao devem ser apagados silenciosamente.
 
 2) Economia Mensal (indicadores de prioridade)
 

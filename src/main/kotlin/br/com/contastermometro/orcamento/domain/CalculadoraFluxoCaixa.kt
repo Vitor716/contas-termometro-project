@@ -6,6 +6,12 @@ import java.math.BigDecimal
 
 object CalculadoraFluxoCaixa {
 
+    fun calcularSomaAjustes(lancamentos: List<LancamentoResponse>): BigDecimal {
+        return lancamentos
+            .filter { it.tipo == TipoLancamento.AJUSTE_SALDO }
+            .sumOf { it.valor }
+    }
+
     fun calcularSomaEntradas(lancamentos: List<LancamentoResponse>): BigDecimal {
         return lancamentos
             .filter { it.tipo == TipoLancamento.ENTRADA }
@@ -22,7 +28,11 @@ object CalculadoraFluxoCaixa {
         return saidasFixas + gastoDiarioTotal + totalInvestido
     }
 
-    fun calcularSaldoDoMes(somaEntradas: BigDecimal, saidaTotal: BigDecimal, totalInvestido: BigDecimal): BigDecimal {
-        return somaEntradas - saidaTotal
+    fun calcularSaldoDoMes(
+        somaEntradas: BigDecimal,
+        saidaTotal: BigDecimal,
+        ajustes: BigDecimal
+    ): BigDecimal {
+        return somaEntradas - saidaTotal + ajustes
     }
 }

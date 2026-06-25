@@ -141,29 +141,105 @@
                             <small id="balance-caption">Resultado até agora</small>
                             <span class="metric-action">Ver movimentações <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
                         </article>
+                        <article class="panel upload-panel" style="margin-top: 20px;">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="panel-kicker">Motor de Decisão</span>
+                                    <h2>Configurações do Termômetro</h2>
+                                </div>
+                            </div>
+
+                            <form id="termometro-form" style="margin-top: 20px;">
+                                <input id="termometro-id" type="hidden">
+
+                                <div class="form-grid">
+                                    <label class="field">
+                                        <span>Reserva Mínima Intocável</span>
+                                        <div class="money-input">
+                                            <i>R$</i>
+                                            <input id="term-reserva" type="text" required inputmode="decimal" placeholder="0,00">
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span>Orçamento Diário Mínimo</span>
+                                        <div class="money-input">
+                                            <i>R$</i>
+                                            <input id="term-diario" type="text" required inputmode="decimal" placeholder="0,00">
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span>Comprometimento Máx. Renda (%)</span>
+                                        <div class="money-input">
+                                            <input id="term-comprometimento" type="text" required inputmode="decimal" placeholder="30,00">
+                                            <i style="left: auto; right: 12px;">%</i>
+                                        </div>
+                                    </label>
+
+                                    <label class="field">
+                                        <span>Margem de Segurança (%)</span>
+                                        <div class="money-input">
+                                            <input id="term-margem" type="text" required inputmode="decimal" placeholder="5,00">
+                                            <i style="left: auto; right: 12px;">%</i>
+                                        </div>
+                                    </label>
+
+                                    <label class="field field-wide">
+                                        <span>Estratégia</span>
+                                        <select id="term-estrategia" required style="width: 100%; height: 43px; border: 1px solid var(--line); border-radius: 10px; background: #fff;">
+                                            <option value="CONSERVADORA">Conservadora</option>
+                                            <option value="MODERADA">Moderada</option>
+                                            <option value="AGRESSIVA">Agressiva</option>
+                                            <option value="PERSONALIZADA">Personalizada</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div style="margin-top: 20px;">
+                                    <button class="primary-button full-width" type="submit">
+                                        Salvar Regras do Termômetro
+                                    </button>
+                                </div>
+                            </form>
+                        </article>
                     </div>
 
                     <div class="dashboard-grid">
                         <article class="panel thermometer-panel">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="panel-kicker">Termômetro financeiro</span>
-                                    <h2 id="temperature-title">Construindo seu mês</h2>
+                                    <span class="panel-kicker">Saúde Financeira</span>
+                                    <h2 id="temperature-title">Status do Termômetro</h2>
                                 </div>
-                                <span class="status-pill" id="temperature-status">Sem dados</span>
+                                <span class="status-pill" id="snapshot-status">Calculando...</span>
                             </div>
-                            <p id="temperature-description">Adicione seus lançamentos para acompanhar sua saúde financeira.</p>
 
-                            <div class="thermometer-track" aria-hidden="true">
-                                <div class="thermometer-fill" id="thermometer-fill"></div>
-                                <i style="left: 25%"></i><i style="left: 50%"></i><i style="left: 75%"></i>
+                            <p id="temperature-description">Baseado na sua estratégia e limites configurados.</p>
+
+                            <div class="investment-layout" style="margin-top: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line);">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="font-size: 13px; font-weight: 700; color: var(--ink);">Progresso de Investimentos</span>
+                                    <span id="snapshot-invested-text" style="font-size: 13px; font-weight: 800; color: var(--purple);">R$ 0,00</span>
+                                </div>
+                                <div class="progress-bar" style="height: 10px; background: var(--surface-muted); border-radius: 99px; overflow: hidden;">
+                                    <span id="snapshot-invested-bar" style="display: block; height: 100%; width: 0%; background: var(--purple); transition: width 0.6s ease;"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+                                    <small style="color: var(--ink-soft); font-size: 11px;">Alocado este mês</small>
+                                    <strong id="snapshot-performance-text" style="font-size: 11px; color: var(--ink);">0% da meta</strong>
+                                </div>
                             </div>
-                            <div class="thermometer-labels"><span>Atenção</span><span>Equilíbrio</span><span>Excelente</span></div>
 
-                            <div class="thermometer-stats">
-                                <div><span>Performance da meta</span><strong id="metric-performance">0%</strong></div>
-                                <div><span>Investido</span><strong id="metric-invested">R$ 0,00</strong></div>
-                                <div><span>Saída total</span><strong id="metric-total-out">R$ 0,00</strong></div>
+                            <div class="thermometer-stats" style="margin-top: 20px; border-top: 0; padding-top: 0;">
+                                <div style="padding-left: 0;">
+                                    <span>Orçamento Diário Protegido</span>
+                                    <strong id="snapshot-daily-remaining">R$ 0,00</strong>
+                                </div>
+                                <div>
+                                    <span>Estratégia Ativa</span>
+                                    <strong id="snapshot-estrategia">Padrão</strong>
+                                </div>
                             </div>
                         </article>
 

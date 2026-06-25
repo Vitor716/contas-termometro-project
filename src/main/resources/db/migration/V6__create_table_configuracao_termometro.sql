@@ -1,5 +1,5 @@
 CREATE TABLE configuracao_termometro (
-    id LONG PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     -- Valores monetários diretos (até 9 trilhões, com 2 casas decimais)
     reserva_minima_intocavel NUMERIC(15, 2) NOT NULL,
@@ -13,20 +13,6 @@ CREATE TABLE configuracao_termometro (
     estrategia VARCHAR(50) NOT NULL,
 
     -- Campos de auditoria recomendados
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-
--- (Opcional) Trigger para atualizar o 'updated_at' automaticamente no PostgreSQL
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_config_termometro_modtime
-    BEFORE UPDATE ON configuracao_termometro
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();

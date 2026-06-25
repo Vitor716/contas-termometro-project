@@ -3,7 +3,9 @@ const API = {
     summary: "/api/orcamento",
     annualSummary: "/api/orcamento/anual",
     imports: "/api/importacao",
-    metas: "/api/configuracao/metas"
+    metas: "/api/configuracao/metas",
+    termometro: "/api/configuracao/termometro",
+    snapshot: "/api/orcamento/termometro/snapshot"
 };
 
 const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas"]);
@@ -80,6 +82,56 @@ function init() {
     updateMonthLabels();
     loadMonth();
     checkHealth();
+    bindTermometroForm();
+}
+
+function bindTermometroForm() {
+    byId("termometro-form").addEventListener("submit", salvarTermometro);
+}
+
+async function loadTermometro() {
+    try {
+        const config = await apiFetch(API.termometro);
+        if (config) {
+            byId("termometro-id").value = config.id;
+            byId("term-reserva").value = String(config.reservaMinimaIntocavel).replace(".", ",");
+            byId("term-diario").value = String(config.orcamentoDiarioMinimo).replace(".", ",");
+            byId("term-comprometimento").value = String(config.comprometimentoMaximoRenda * 100).replace(".", ",");
+            byId("term-margem").value = String(config.margemSeguranca * 100).replace(".", ",");
+            byId("term-estrategia").value = config.estrategia;
+
+            setText("snapshot-estrategia", config.estrategia);
+        }
+    } catch (error) {
+        console.warn("Configuração inicial do termômetro não encontrada.");
+    }
+}
+
+async function salvarTermometro(event) {
+    event.preventDefault();
+    const id = byId("termometro-id").value;
+    const payload = {
+        reservaMinimaIntocavel: parseMoney(byId("term-reserva").value),
+        orcamentoDiarioMinimo: parseMoney(byId("term-diario").value),
+        comprometimentoMaximoRenda: parseMoney(byId("term-comprometimento").value) / 100,
+        margemSeguranca: parseMoney(byId("term-margem").value) / 100,
+        estrategia: byId("term-estrategia").value
+    };
+
+    const method = id ? "PUT" : "POST";
+    const url = id ? `${API.termometro}/${id}` : API.termometro;
+
+    try {
+        await apiFetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        toast("Regras do termômetro salvas com sucesso!");
+        await loadTermometro();
+    } catch (e) {
+        toast(e.message || "Erro ao salvar termômetro.", "error");
+    }
 }
 
 function bindMetaForm() {
@@ -173,7 +225,6 @@ function formatarDataIso(isoString) {
     return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
-// Correção do normalizeRate para respeitar a ADR 0012 (percentual puro 0..1)
 function normalizeRate(value) {
     return number(value);
 }
@@ -431,6 +482,7 @@ async function loadMonth() {
         state.entries = Array.isArray(entries) ? entries : [];
         renderDashboard();
         renderEntries();
+        await loadSnapshot()
     } catch (error) {
         state.summary = null;
         state.entries = [];
@@ -439,6 +491,44 @@ async function loadMonth() {
         toast(error.message || "Não foi possível carregar o mês.", "error");
     } finally {
         setDashboardLoading(false);
+    }
+}
+
+async function loadSnapshot() {
+    try {
+        const snapshot = await apiFetch(`${API.snapshot}?mes=${state.month}`);
+
+        const investido = number(snapshot.totalInvestidoCentavos);
+        const diarioRestante = number(snapshot.gastoDiarioRestanteCentavos);
+        const performancePercent = number(snapshot.performanceContraMetaBps) / 100;
+
+        setText("snapshot-invested-text", money(investido));
+        setText("snapshot-daily-remaining", money(diarioRestante));
+        setText("snapshot-performance-text", `${percent(performancePercent / 100)} da meta atingida`);
+
+        const fillWidth = Math.min(performancePercent, 100);
+        byId("snapshot-invested-bar").style.width = `${fillWidth}%`;
+
+        const statusEl = byId("snapshot-status");
+        statusEl.className = "status-pill";
+
+        if (snapshot.statusAtual === "VERDE") {
+            statusEl.classList.add("good");
+            statusEl.textContent = "Saudável";
+            setText("temperature-description", "Seus investimentos e gastos diários estão dentro do seguro.");
+        } else if (snapshot.statusAtual === "AMARELO") {
+            statusEl.classList.add("warning");
+            statusEl.textContent = "Atenção";
+            setText("temperature-description", "Sua meta de investimentos ainda não foi atingida.");
+        } else {
+            statusEl.classList.add("danger");
+            statusEl.textContent = "Alerta Crítico";
+            setText("temperature-description", "O limite do seu orçamento diário de segurança foi ultrapassado.");
+        }
+
+    } catch (e) {
+        byId("snapshot-status").className = "status-pill";
+        setText("snapshot-status", "Sem dados");
     }
 }
 

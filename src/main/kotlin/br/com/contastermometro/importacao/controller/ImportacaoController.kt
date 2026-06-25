@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
 @RestController
-@RequestMapping("/api/importacao")
+@RequestMapping("/api/importacoes")
 class ImportacaoController(
     private val importacaoService: ImportacaoService
 ) {
 
-    @PostMapping("/upload/nubank")
+    @PostMapping("/nubank")
     fun importarLancamentosNubank(@RequestParam("file") file: MultipartFile) : ResponseEntity<ResultadoImportacao> {
         val lancamentos = importacaoService.importarLancamentosNubank(file)
         return ResponseEntity.ok(lancamentos)
@@ -25,14 +25,14 @@ class ImportacaoController(
         return ResponseEntity.ok(lotes)
     }
 
-    @GetMapping("/lotesPorId")
-    fun buscarPorId(idLote: String) : ResponseEntity<LoteImportacaoResponse>{
-        val lotes = importacaoService.buscarPorId(idLote)
+    @GetMapping("/lotes/{id}")
+    fun buscarPorId(@PathVariable id: String) : ResponseEntity<LoteImportacaoResponse>{
+        val lotes = importacaoService.buscarPorId(id)
         return ResponseEntity.ok(lotes)
     }
 
-    @DeleteMapping()
-    fun deletar(idLote: String) : ResponseEntity<Void>{
+    @DeleteMapping("/lotes/{id}")
+    fun deletar(@PathVariable idLote: String) : ResponseEntity<Void>{
         importacaoService.deletar(idLote)
         return ResponseEntity.noContent().build()
     }

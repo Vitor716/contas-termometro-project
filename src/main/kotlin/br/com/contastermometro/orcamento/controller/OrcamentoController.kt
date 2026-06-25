@@ -3,8 +3,8 @@ package br.com.contastermometro.orcamento.controller
 import br.com.contastermometro.orcamento.dto.ResumoAnualResponse
 import br.com.contastermometro.orcamento.dto.ResumoMensal
 import br.com.contastermometro.orcamento.dto.SnapshotTermometroMensal
-import br.com.contastermometro.orcamento.repository.SnapshotTermometroRepository
 import br.com.contastermometro.orcamento.service.OrcamentoService
+import br.com.contastermometro.orcamento.service.SnapshotTermometroService
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
 
 @RestController
-@RequestMapping("api/orcamento")
+@RequestMapping("/api/orcamento")
 class OrcamentoController (
     private val orcamentoService: OrcamentoService,
-    private val snapshotTermometroRepository: SnapshotTermometroRepository
+    private val snapshotTermometroService : SnapshotTermometroService
 ){
 
     @GetMapping()
@@ -34,8 +34,7 @@ class OrcamentoController (
 
     @GetMapping("/termometro/snapshot")
     fun buscarSnapshotMensal(@RequestParam("mes") mes: String): ResponseEntity<SnapshotTermometroMensal> {
-        val snapshot = snapshotTermometroRepository.findById(mes)
-            .orElseThrow { IllegalArgumentException("Snapshot não encontrado para o mês $mes.") }
+        val snapshot = snapshotTermometroService.buscarPorId(mes)
         return ResponseEntity.ok(snapshot)
     }
 }

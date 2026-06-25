@@ -14,7 +14,8 @@ class TermometroController (
 ){
     @PostMapping
     fun criar(@Valid @RequestBody request: TermometroRequest): ResponseEntity<TermometroResponse> {
-        return ResponseEntity.ok(service.criar(request))
+        val created = service.criar(request)
+        return ResponseEntity.status(201).body(created)
     }
 
     @GetMapping()

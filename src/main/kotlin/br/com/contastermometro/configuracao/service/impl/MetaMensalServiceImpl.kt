@@ -14,7 +14,7 @@ class MetaMensalServiceImpl (
     private val repository: MetaMensalRepository
 ) : MetaMensalService {
 
-    override fun definir(
+    override fun criar(
         mesRaw: YearMonth,
         request: MetaMensalRequest
     ): MetaMensalResponse {

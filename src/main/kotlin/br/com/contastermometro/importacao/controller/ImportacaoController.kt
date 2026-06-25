@@ -3,6 +3,7 @@ package br.com.contastermometro.importacao.controller
 import br.com.contastermometro.importacao.dto.LoteImportacaoResponse
 import br.com.contastermometro.importacao.dto.ResultadoImportacao
 import br.com.contastermometro.importacao.service.ImportacaoService
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
@@ -14,26 +15,24 @@ class ImportacaoController(
 ) {
 
     @PostMapping("/nubank")
-    fun importarLancamentosNubank(@RequestParam("file") file: MultipartFile) : ResponseEntity<ResultadoImportacao> {
+    fun importarNubank(@RequestParam("file") file: MultipartFile) : ResponseEntity<ResultadoImportacao> {
         val lancamentos = importacaoService.importarLancamentosNubank(file)
-        return ResponseEntity.ok(lancamentos)
+        return ResponseEntity.status(HttpStatus.CREATED).body(lancamentos)
     }
 
-    @GetMapping("/lotes")
-    fun buscar() : ResponseEntity<List<LoteImportacaoResponse>>{
-        val lotes = importacaoService.buscar()
-        return ResponseEntity.ok(lotes)
+    @GetMapping
+    fun listar() : ResponseEntity<List<LoteImportacaoResponse>>{
+        return ResponseEntity.ok(importacaoService.buscar())
     }
 
-    @GetMapping("/lotes/{id}")
+    @GetMapping("/{id}")
     fun buscarPorId(@PathVariable id: String) : ResponseEntity<LoteImportacaoResponse>{
-        val lotes = importacaoService.buscarPorId(id)
-        return ResponseEntity.ok(lotes)
+        return ResponseEntity.ok(importacaoService.buscarPorId(id))
     }
 
-    @DeleteMapping("/lotes/{id}")
-    fun deletar(@PathVariable idLote: String) : ResponseEntity<Void>{
-        importacaoService.deletar(idLote)
+    @DeleteMapping("/{id}")
+    fun deletar(@PathVariable id: String) : ResponseEntity<Void>{
+        importacaoService.deletar(id)
         return ResponseEntity.noContent().build()
     }
 }

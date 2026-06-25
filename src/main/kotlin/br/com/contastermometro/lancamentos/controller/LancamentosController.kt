@@ -5,6 +5,7 @@ import br.com.contastermometro.lancamentos.dto.LancamentoResponse
 import br.com.contastermometro.lancamentos.service.LancamentosService
 import jakarta.validation.Valid
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.YearMonth
@@ -18,36 +19,40 @@ class LancamentosController(
     @PostMapping
     fun criar(@Valid @RequestBody req: LancamentoRequest): ResponseEntity<LancamentoResponse> {
         val created = lancamentosService.criar(req)
-        return ResponseEntity.status(201).body(created)
+        return ResponseEntity.status(HttpStatus.CREATED).body(created)
     }
 
     @GetMapping("/{id}")
-    fun buscar(@PathVariable id: Long): ResponseEntity<LancamentoResponse> {
+    fun buscarPorId(@PathVariable id: Long): ResponseEntity<LancamentoResponse> {
         return ResponseEntity.ok(lancamentosService.buscar(id))
     }
 
     @GetMapping()
     fun listarPorMes(
         @DateTimeFormat(pattern = "yyyy-MM")
-        @RequestParam("mes") mesRaw: YearMonth): ResponseEntity<List<LancamentoResponse>> {
+        @RequestParam("mes") mesRaw: YearMonth
+    ): ResponseEntity<List<LancamentoResponse>> {
         return ResponseEntity.ok(lancamentosService.listarPorMes(mesRaw))
     }
 
-    @GetMapping("/lote")
+    @GetMapping("/lotes/{idLote}")
     fun listarImportacao(idLote: String) : ResponseEntity<List<LancamentoResponse>>{
         val importacao = lancamentosService.listarImportacao(idLote)
         return ResponseEntity.ok(importacao)
     }
 
-    @DeleteMapping("/{id}")
-    fun remover(@PathVariable id: Long): ResponseEntity<LancamentoResponse> {
-        lancamentosService.remover(id)
-        return ResponseEntity.noContent().build()
-    }
-
     @PutMapping("/{id}")
-    fun editar(@PathVariable id: Long, @Valid @RequestBody req: LancamentoRequest): ResponseEntity<LancamentoResponse> {
+    fun editar(
+        @PathVariable id: Long,
+        @Valid @RequestBody req: LancamentoRequest
+    ): ResponseEntity<LancamentoResponse> {
         val updated = lancamentosService.editar(id, req)
         return ResponseEntity.ok(updated)
+    }
+
+    @DeleteMapping("/{id}")
+    fun remover(@PathVariable id: Long): ResponseEntity<Void> {
+        lancamentosService.remover(id)
+        return ResponseEntity.noContent().build()
     }
 }

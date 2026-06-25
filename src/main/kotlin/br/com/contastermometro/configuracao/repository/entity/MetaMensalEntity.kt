@@ -1,4 +1,4 @@
-package br.com.contastermometro.configuracao.dto
+package br.com.contastermometro.configuracao.repository.entity
 
 import jakarta.persistence.*
 import java.time.Instant
@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter
 
 @Entity
 @Table(name = "metas_mensais")
-class MetaMensal(
+class MetaMensalEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,

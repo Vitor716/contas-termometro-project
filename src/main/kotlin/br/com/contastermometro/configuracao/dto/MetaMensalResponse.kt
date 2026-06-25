@@ -1,5 +1,6 @@
 package br.com.contastermometro.configuracao.dto
 
+import br.com.contastermometro.configuracao.repository.entity.MetaMensalEntity
 import java.math.BigDecimal
 import java.time.YearMonth
 
@@ -13,7 +14,7 @@ data class MetaMensalResponse(
     val vigenteAte: String?
 )
 
-fun MetaMensal.toResponse(): MetaMensalResponse {
+fun MetaMensalEntity.toResponse(): MetaMensalResponse {
     return MetaMensalResponse(
         id = this.id ?: 0,
         mesReferencia = this.mesReferencia,
@@ -25,8 +26,8 @@ fun MetaMensal.toResponse(): MetaMensalResponse {
     )
 }
 
-fun MetaMensalRequest.toModel(mes: YearMonth): MetaMensal {
-    return MetaMensal(
+fun MetaMensalRequest.toModel(mes: YearMonth): MetaMensalEntity {
+    return MetaMensalEntity(
         mesReferencia = mes.toString(),
         percentualMetaInvestimentoBps = this.percentualMetaInvestimento.movePointRight(4).toInt(),
         orcamentoDiarioMinimoCentavos = this.orcamentoDiarioMinimo.movePointRight(2).toLong(),

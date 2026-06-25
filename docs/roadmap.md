@@ -173,7 +173,7 @@ Critérios de aceite:
 - edição não altera silenciosamente campos não enviados;
 - dados inválidos não são persistidos.
 
-## MVP 2 - Resumo mensal validado — 🟡
+## MVP 2 - Resumo mensal validado — ✅
 
 Objetivo: reproduzir a planilha com regras formalizadas.
 

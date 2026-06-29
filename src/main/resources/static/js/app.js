@@ -1,11 +1,11 @@
 const API = {
     entries: "/api/lancamentos",
-    summary: "/api/orcamento",
-    annualSummary: "/api/orcamento/anual",
-    imports: "/api/importacao",
+    summary: "/api/orcamentos/mensal",
+    annualSummary: "/api/orcamentos/anual",
+    imports: "/api/importacoes",
     metas: "/api/configuracao/metas",
     termometro: "/api/configuracao/termometro",
-    snapshot: "/api/orcamento/termometro/snapshot"
+    snapshot: "/api/configuracoes/termometros/snapshots"
 };
 
 const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas"]);
@@ -83,6 +83,7 @@ function init() {
     loadMonth();
     checkHealth();
     bindTermometroForm();
+    loadTermometro();
 }
 
 function bindTermometroForm() {
@@ -95,10 +96,14 @@ async function loadTermometro() {
         if (config) {
             byId("termometro-id").value = config.id;
             byId("term-reserva").value = String(config.reservaMinimaIntocavel).replace(".", ",");
-            byId("term-diario").value = String(config.orcamentoDiarioMinimo).replace(".", ",");
             byId("term-comprometimento").value = String(config.comprometimentoMaximoRenda * 100).replace(".", ",");
             byId("term-margem").value = String(config.margemSeguranca * 100).replace(".", ",");
             byId("term-estrategia").value = config.estrategia;
+
+            const diarioMinimoEl = byId("term-diario");
+            if (diarioMinimoEl) {
+                diarioMinimoEl.value = String(config.orcamentoDiarioMinimo).replace(".", ",");
+            }
 
             setText("snapshot-estrategia", config.estrategia);
         }
@@ -110,9 +115,13 @@ async function loadTermometro() {
 async function salvarTermometro(event) {
     event.preventDefault();
     const id = byId("termometro-id").value;
+
+    const diarioMinimoEl = byId("term-diario");
+    const diarioMinimoValor = diarioMinimoEl ? parseMoney(diarioMinimoEl.value) : 0;
+
     const payload = {
         reservaMinimaIntocavel: parseMoney(byId("term-reserva").value),
-        orcamentoDiarioMinimo: parseMoney(byId("term-diario").value),
+        orcamentoDiarioMinimo: diarioMinimoValor,
         comprometimentoMaximoRenda: parseMoney(byId("term-comprometimento").value) / 100,
         margemSeguranca: parseMoney(byId("term-margem").value) / 100,
         estrategia: byId("term-estrategia").value
@@ -316,26 +325,6 @@ function renderAnnual() {
     renderAnnualMonths(months);
 }
 
-function renderAnnualChart(months) {
-    const maxValue = Math.max(1, ...months.flatMap(item => [
-        number(item.somaEntradas),
-        number(item.saidaTotal),
-        number(item.totalInvestido)
-    ]));
-    byId("annual-chart").innerHTML = months.map(item => {
-        const date = monthToDate(item.month);
-        const label = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(date).replace(".", "");
-        const bars = [
-            ["income", number(item.somaEntradas), "Entradas"],
-            ["out", number(item.saidaTotal), "Saídas"],
-            ["investment", number(item.totalInvestido), "Investido"]
-        ].map(([className, value, title]) =>
-            `<i class="chart-bar ${className}" style="height:${value > 0 ? Math.max(value / maxValue * 100, 2) : 0}%" title="${title}: ${money(value)}"></i>`
-        ).join("");
-        return `<div class="chart-month"><div class="chart-bars">${bars}</div><span>${label}</span></div>`;
-    }).join("");
-}
-
 function renderAnnualHighlights(months) {
     const active = months.filter(item => item.entriesCount > 0);
     const bestIncome = maxMonth(active, "somaEntradas");
@@ -344,6 +333,48 @@ function renderAnnualHighlights(months) {
     setAnnualHighlight("annual-best-income", "annual-best-income-value", bestIncome, "somaEntradas");
     setAnnualHighlight("annual-best-investment", "annual-best-investment-value", bestInvestment, "totalInvestido");
     setAnnualHighlight("annual-highest-out", "annual-highest-out-value", highestOut, "saidaTotal");
+}
+
+function renderAnnualChart(months) {
+    const maxValue = Math.max(1, ...months.flatMap(item => [
+        number(item.somaEntradas),
+        number(item.saidaTotal),
+        number(item.totalInvestido)
+    ]));
+
+    byId("annual-chart").innerHTML = months.map(item => {
+        const date = monthToDate(item.month);
+        const label = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(date).replace(".", "");
+
+        const entradas = number(item.somaEntradas);
+        const saidas = number(item.saidaTotal);
+        const investido = number(item.totalInvestido);
+
+        const bars = [
+            ["income", entradas],
+            ["out", saidas],
+            ["investment", investido]
+        ].map(([className, value]) =>
+            `<i class="chart-bar ${className}" style="height:${value > 0 ? Math.max(value / maxValue * 100, 2) : 0}%"></i>`
+        ).join("");
+
+        const tooltip = `
+            <div class="chart-tooltip">
+                <strong>${monthName(item.month)}</strong>
+                <div class="tooltip-row"><i class="income"></i> Entradas: <span>${money(entradas)}</span></div>
+                <div class="tooltip-row"><i class="out"></i> Saídas: <span>${money(saidas)}</span></div>
+                <div class="tooltip-row"><i class="investment"></i> Investido: <span>${money(investido)}</span></div>
+            </div>
+        `;
+
+        return `
+            <div class="chart-month" tabindex="0">
+                ${tooltip}
+                <div class="chart-bars">${bars}</div>
+                <span>${label}</span>
+            </div>
+        `;
+    }).join("");
 }
 
 function maxMonth(months, key) {
@@ -496,39 +527,27 @@ async function loadMonth() {
 
 async function loadSnapshot() {
     try {
-        const snapshot = await apiFetch(`${API.snapshot}?mes=${state.month}`);
+        const snapshot = await apiFetch(`${API.snapshot}/${state.month}`);
 
-        const investido = number(snapshot.totalInvestidoCentavos);
-        const diarioRestante = number(snapshot.gastoDiarioRestanteCentavos);
-        const performancePercent = number(snapshot.performanceContraMetaBps) / 100;
-
-        setText("snapshot-invested-text", money(investido));
-        setText("snapshot-daily-remaining", money(diarioRestante));
-        setText("snapshot-performance-text", `${percent(performancePercent / 100)} da meta atingida`);
-
-        const fillWidth = Math.min(performancePercent, 100);
-        byId("snapshot-invested-bar").style.width = `${fillWidth}%`;
-
-        const statusEl = byId("snapshot-status");
+        const statusEl = byId("temperature-status");
         statusEl.className = "status-pill";
 
         if (snapshot.statusAtual === "VERDE") {
             statusEl.classList.add("good");
             statusEl.textContent = "Saudável";
-            setText("temperature-description", "Seus investimentos e gastos diários estão dentro do seguro.");
+            setText("temperature-description", "Seus investimentos e gastos estão dentro do seguro.");
         } else if (snapshot.statusAtual === "AMARELO") {
-            statusEl.classList.add("warning");
-            statusEl.textContent = "Atenção";
-            setText("temperature-description", "Sua meta de investimentos ainda não foi atingida.");
+            statusEl.style.background = "var(--blue-light)"; // Azul ao invés de amarelo/laranja
+            statusEl.style.color = "var(--blue)";
+            statusEl.textContent = "Aguardando Aporte";
+            setText("temperature-description", "Você tem margem no orçamento. Faça seu investimento para bater a meta do mês!");
         } else {
             statusEl.classList.add("danger");
             statusEl.textContent = "Alerta Crítico";
-            setText("temperature-description", "O limite do seu orçamento diário de segurança foi ultrapassado.");
+            setText("temperature-description", "Seu ritmo de gastos comprometeu a sua meta ou seu limite diário.");
         }
-
     } catch (e) {
-        byId("snapshot-status").className = "status-pill";
-        setText("snapshot-status", "Sem dados");
+        // Status permanece como calculado por renderTemperature() a partir do resumo mensal
     }
 }
 
@@ -543,8 +562,10 @@ function renderDashboard() {
     setText("metric-fixed", money(summary.somaSaidasFixas));
     setText("metric-daily", money(summary.totalGastoDiario));
     setText("metric-balance", money(summary.saldoMes));
-    setText("metric-invested", money(summary.totalInvestido));
-    setText("metric-total-out", money(summary.saidaTotal));
+    const metaValorReais = number(summary.somaEntradas) * normalizeRate(summary.metaInvestimento);
+    setText("thermo-invested", money(summary.totalInvestido));
+    setText("thermo-goal", money(metaValorReais));
+    setText("thermo-total-out", money(summary.saidaTotal));
     setText("metric-performance", percent(normalizeRate(summary.performanceContraMeta)));
     setText("metric-daily-remaining", money(summary.gastoDiarioRestante));
     setText("daily-spent", money(summary.totalGastoDiario));
@@ -572,32 +593,35 @@ function renderDashboard() {
 
 function renderTemperature(performance, hasIncome) {
     const status = byId("temperature-status");
+    if (!status) return;
     status.className = "status-pill";
+
+    const fill = byId("thermometer-fill");
 
     if (!hasIncome) {
         setText("temperature-title", "Comece pelas entradas");
         setText("temperature-description", "Registre uma entrada para o termômetro comparar seus investimentos com a meta mensal.");
-        setText("temperature-status", "Sem dados");
-        byId("thermometer-fill").style.width = "100%";
+        status.textContent = "Sem dados";
+        if (fill) fill.style.width = "100%";
         return;
     }
 
     const covered = Math.min(Math.max(performance, 0), 1.25);
-    byId("thermometer-fill").style.width = `${100 - Math.min(covered / 1.25 * 100, 100)}%`;
+    if (fill) fill.style.width = `${100 - Math.min(covered / 1.25 * 100, 100)}%`;
 
     if (performance >= 1) {
         status.classList.add("good");
-        setText("temperature-status", "Meta atingida");
+        status.textContent = "Saudável";
         setText("temperature-title", "Seu mês está saudável");
         setText("temperature-description", "O investimento planejado foi alcançado. Preserve esse resultado ao tomar novas decisões.");
     } else if (performance >= .8) {
         status.classList.add("warning");
-        setText("temperature-status", "Quase lá");
+        status.textContent = "Atenção";
         setText("temperature-title", "Você está perto da meta");
         setText("temperature-description", "O ritmo é positivo. Revise os gastos variáveis antes de assumir um novo compromisso.");
     } else {
         status.classList.add("danger");
-        setText("temperature-status", "Atenção");
+        status.textContent = "Crítico";
         setText("temperature-title", "Sua meta pede atenção");
         setText("temperature-description", "O valor investido ainda está abaixo do planejado. Priorize a margem restante do mês.");
     }
@@ -835,7 +859,7 @@ async function uploadCsv() {
     data.append("file", state.selectedFile);
 
     try {
-        const result = await apiFetch(`${API.imports}/upload/nubank`, { method: "POST", body: data });
+        const result = await apiFetch(`${API.imports}/nubank`, { method: "POST", body: data });
         const successes = result.sucessos?.length || 0;
         const failures = result.falhas?.length || 0;
         toast(`${successes} lançamento(s) importado(s)${failures ? ` e ${failures} linha(s) rejeitada(s)` : ""}.`);
@@ -853,7 +877,7 @@ async function loadImports() {
     const container = byId("imports-list");
     container.innerHTML = `<div class="loading-panel"><span class="spinner"></span> Carregando...</div>`;
     try {
-        const imports = await apiFetch(`${API.imports}/lotes`);
+        const imports = await apiFetch(API.imports);
         state.imports = Array.isArray(imports) ? imports : [];
         renderImports();
     } catch (error) {
@@ -882,7 +906,7 @@ function requestImportDeletion(idLote) {
     setText("confirm-message", "Todos os lançamentos criados por esta importação também serão removidos.");
     setText("confirm-action", "Excluir lote");
     state.pendingConfirmation = async () => {
-        await apiFetch(`${API.imports}?idLote=${encodeURIComponent(idLote)}`, { method: "DELETE" });
+        await apiFetch(`${API.imports}/${encodeURIComponent(idLote)}`, { method: "DELETE" });
         toast("Lote e lançamentos removidos.");
         await Promise.all([loadImports(), loadMonth()]);
     };

@@ -36,7 +36,9 @@ class OrcamentoServiceImpl (
         var calcularSomaAjustes = CalculadoraFluxoCaixa.calcularSomaAjustes(lancamentos)
         val saidaTotal = CalculadoraFluxoCaixa.calcularSaidaTotal(saidasFixas, gastoDiarioTotal, totalInvestido)
         val saldo = CalculadoraFluxoCaixa.calcularSaldoDoMes(entradas, saidaTotal, calcularSomaAjustes)
-        val limiteMensalGastoDiario = saldo - totalInvestido
+
+        val metaValorReais = entradas.multiply(metaInvestimento.percentualMetaInvestimento)
+        val limiteMensalGastoDiario = entradas - saidasFixas - metaValorReais
 
         val gastoDiarioEsperadoAtual = CalculadoraGastoDiario.calcularGastoDiarioEsperadoAteHoje(limiteMensalGastoDiario, mesRaw.dayOfMonth, mesRaw.lengthOfMonth())
         val gastoDiarioRestante = CalculadoraGastoDiario.calcularGastoDiarioRestante(limiteMensalGastoDiario, gastoDiarioTotal)

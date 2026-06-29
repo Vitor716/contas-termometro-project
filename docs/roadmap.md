@@ -519,6 +519,23 @@ Critérios de aceite:
 - resposta inválida usa template;
 - dados brutos não são enviados ao modelo.
 
+## MVP 10.1 - Copiloto de Configuração (Preenchimento Inteligente) — ⬜
+
+Objetivo: transformar o usuário em um "revisor de decisões", usando a IA para ler o histórico financeiro, calcular sugestões personalizadas de configuração e preencher o formulário do Termômetro automaticamente para revisão.
+
+Entregáveis:
+- agregador de histórico financeiro no backend (cálculo de médias anonimizadas dos últimos 3 a 6 meses);
+- envio de DTO de contexto para o adaptador de IA (apenas números e categorias agregadas, sem descrições brutas);
+- instrução via *System Prompt* obrigando a IA a justificar o cálculo;
+- formatação estrita da resposta da IA usando JSON Schema (`reservaSugerida`, `percentualFixoSugerido`, `explicacao`);
+- botão na interface: "✨ Sugerir regras baseadas no meu histórico";
+- o frontend recebe o mock da IA e preenche os `<input>` da tela, permitindo que o usuário edite antes de clicar em "Salvar".
+
+Critérios de aceite:
+- a IA atua apenas como "sugestão em tela", ela NUNCA salva diretamente no banco de dados (`metas_mensais` ou `configuracao_termometro`);
+- se o usuário não tiver histórico suficiente (ex: conta nova), a IA ou o Backend devem usar um fallback com os cálculos estáticos padrão (ex: 6x o custo de vida informado manualmente);
+- nenhuma descrição real de lançamento (ex: "Mercado Zezinho") trafega para o modelo remoto (Gemini/GitHub Models), apenas agregações (ex: "gastoDiarioMedio: 1500.00").
+
 ## MVP 11 - Backup, versionamento e portabilidade — ⬜
 
 Objetivo: abrir o sistema em outro computador com segurança.

@@ -267,6 +267,40 @@ Enviar ao modelo somente o resultado calculado, preferencialmente anonimizado. E
 
 Nunca enviar credenciais, CSV bruto, observações pessoais ou banco inteiro.
 
+## Copiloto de Configuração (AI-Assisted Setup)
+
+O sistema conta com um recurso de geração de valores padrão inteligentes para as regras do Termômetro e Metas Mensais.
+
+### Como funciona (Fluxo Human-in-the-Loop)
+1. **Gatilho:** O usuário clica em "Gerar sugestão inteligente".
+2. **Agregação (Local):** O módulo `orcamento` calcula a média dos últimos 6 meses de `SAIDA_FIXA`, `GASTO_DIARIO` e `ENTRADA`.
+3. **Anonimização:** Um DTO de contexto é gerado contendo apenas as métricas matemáticas, sem metadados identificáveis.
+4. **Consulta à IA:** O adaptador (Ollama local ou Gemini/GitHub Models via API) recebe as métricas e um *System Prompt* com a filosofia financeira do sistema (ex: "A reserva deve cobrir 6 meses de custo fixo").
+5. **Resposta Estruturada:** O modelo devolve estritamente um JSON validado por um Schema.
+6. **Revisão:** O Frontend injeta o JSON nos campos do formulário e exibe a justificativa da IA na tela (ex: *"Sugiro R$ 24.000 de reserva pois sua média de custo essencial é R$ 4.000"*).
+7. **Persistência:** Apenas quando o usuário clica em "Salvar", os dados são persistidos no banco de dados SQLite.
+
+### Exemplo do DTO enviado para a IA (Sanitizado)
+```json
+{
+  "rendaMediaMensal": 10000.00,
+  "custoFixoEssencialMedio": 4000.00,
+  "gastoVariavelMedio": 2000.00,
+  "mesesDeHistoricoAnalisados": 4,
+  "estrategiaDesejadaUsuario": "CONSERVADORA"
+}
+
+{
+  "reservaMinimaIntocavel": 24000.00,
+  "orcamentoDiarioMinimo": 30.00,
+  "comprometimentoMaximoRenda": 0.30,
+  "margemSeguranca": 0.10,
+  "explicacoes": {
+     "reserva": "Como seu custo fixo médio é R$ 4.000, multipliquei por 6 meses para garantir tranquilidade em transições de carreira.",
+     "comprometimento": "Sugerido 30% porque permite que você direcione o grande excedente atual para seus investimentos."
+  }
+}
+
 ## Testes mínimos
 
 - compra à vista saudável;

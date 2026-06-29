@@ -28,7 +28,7 @@ class LancamentosServiceImpl(
                 id = saved.id.toString(),
                 descricao = saved.descricao,
                 valor = saved.valorCentavos.toBigDecimal().movePointLeft(2),
-                data = saved.criadoEm
+                data = saved.dataLancamento
             )
         )
 

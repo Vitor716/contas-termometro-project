@@ -40,7 +40,7 @@
             </button>
             <button class="nav-item" :class="{ 'is-active': view === 'metas' }" @click="navigate('metas')" type="button">
                 <svg aria-hidden="true"><use href="#icon-sliders"></use></svg>
-                Metas Mensais
+                Configurações
             </button>
         </nav>
 
@@ -141,68 +141,6 @@
                             <small id="balance-caption">Resultado até agora</small>
                             <span class="metric-action">Ver movimentações <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
                         </article>
-                        <article class="panel upload-panel" style="margin-top: 20px;">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="panel-kicker">Motor de Decisão</span>
-                                    <h2>Configurações do Termômetro</h2>
-                                </div>
-                            </div>
-
-                            <form id="termometro-form" style="margin-top: 20px;">
-                                <input id="termometro-id" type="hidden">
-
-                                <div class="form-grid">
-                                    <label class="field">
-                                        <span>Reserva Mínima Intocável</span>
-                                        <div class="money-input">
-                                            <i>R$</i>
-                                            <input id="term-reserva" type="text" required inputmode="decimal" placeholder="0,00">
-                                        </div>
-                                    </label>
-
-                                    <label class="field">
-                                        <span>Orçamento Diário Mínimo</span>
-                                        <div class="money-input">
-                                            <i>R$</i>
-                                            <input id="term-diario" type="text" required inputmode="decimal" placeholder="0,00">
-                                        </div>
-                                    </label>
-
-                                    <label class="field">
-                                        <span>Comprometimento Máx. Renda (%)</span>
-                                        <div class="money-input">
-                                            <input id="term-comprometimento" type="text" required inputmode="decimal" placeholder="30,00">
-                                            <i style="left: auto; right: 12px;">%</i>
-                                        </div>
-                                    </label>
-
-                                    <label class="field">
-                                        <span>Margem de Segurança (%)</span>
-                                        <div class="money-input">
-                                            <input id="term-margem" type="text" required inputmode="decimal" placeholder="5,00">
-                                            <i style="left: auto; right: 12px;">%</i>
-                                        </div>
-                                    </label>
-
-                                    <label class="field field-wide">
-                                        <span>Estratégia</span>
-                                        <select id="term-estrategia" required style="width: 100%; height: 43px; border: 1px solid var(--line); border-radius: 10px; background: #fff;">
-                                            <option value="CONSERVADORA">Conservadora</option>
-                                            <option value="MODERADA">Moderada</option>
-                                            <option value="AGRESSIVA">Agressiva</option>
-                                            <option value="PERSONALIZADA">Personalizada</option>
-                                        </select>
-                                    </label>
-                                </div>
-
-                                <div style="margin-top: 20px;">
-                                    <button class="primary-button full-width" type="submit">
-                                        Salvar Regras do Termômetro
-                                    </button>
-                                </div>
-                            </form>
-                        </article>
                     </div>
 
                     <div class="dashboard-grid">
@@ -212,33 +150,46 @@
                                     <span class="panel-kicker">Saúde Financeira</span>
                                     <h2 id="temperature-title">Status do Termômetro</h2>
                                 </div>
-                                <span class="status-pill" id="snapshot-status">Calculando...</span>
+                                <span class="status-pill" id="temperature-status">Calculando...</span>
                             </div>
 
-                            <p id="temperature-description">Baseado na sua estratégia e limites configurados.</p>
+                            <p id="temperature-description">Baseado na sua estratégia e nos lançamentos do mês.</p>
 
-                            <div class="investment-layout" style="margin-top: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line);">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <span style="font-size: 13px; font-weight: 700; color: var(--ink);">Progresso de Investimentos</span>
-                                    <span id="snapshot-invested-text" style="font-size: 13px; font-weight: 800; color: var(--purple);">R$ 0,00</span>
+                            <div style="margin-top: 22px;">
+                                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                                    <span style="font-size: 10px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .07em;">Meta de Investimento</span>
+                                    <strong id="metric-performance" style="font-size: 13px; font-weight: 800; color: var(--purple);">0%</strong>
                                 </div>
-                                <div class="progress-bar" style="height: 10px; background: var(--surface-muted); border-radius: 99px; overflow: hidden;">
-                                    <span id="snapshot-invested-bar" style="display: block; height: 100%; width: 0%; background: var(--purple); transition: width 0.6s ease;"></span>
+                                <div class="thermometer-track">
+                                    <span id="thermometer-fill" class="thermometer-fill"></span>
+                                    <i style="left:25%"></i>
+                                    <i style="left:50%"></i>
+                                    <i style="left:75%"></i>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; margin-top: 6px;">
-                                    <small style="color: var(--ink-soft); font-size: 11px;">Alocado este mês</small>
-                                    <strong id="snapshot-performance-text" style="font-size: 11px; color: var(--ink);">0% da meta</strong>
+                                <div class="thermometer-labels">
+                                    <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
                                 </div>
                             </div>
 
-                            <div class="thermometer-stats" style="margin-top: 20px; border-top: 0; padding-top: 0;">
+                            <div style="display: flex; justify-content: space-between; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);">
+                                <div>
+                                    <span style="display: block; color: var(--ink-soft); font-size: 10px; margin-bottom: 4px;">Investido este mês</span>
+                                    <strong id="thermo-invested" style="font: 700 17px 'Manrope', sans-serif; color: var(--purple);">R$ 0,00</strong>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="display: block; color: var(--ink-soft); font-size: 10px; margin-bottom: 4px;">Meta do mês</span>
+                                    <strong id="thermo-goal" style="font: 700 17px 'Manrope', sans-serif;">R$ 0,00</strong>
+                                </div>
+                            </div>
+
+                            <div class="thermometer-stats" style="margin-top: 16px; padding-top: 16px; grid-template-columns: 1fr 1fr;">
                                 <div style="padding-left: 0;">
-                                    <span>Orçamento Diário Protegido</span>
-                                    <strong id="snapshot-daily-remaining">R$ 0,00</strong>
+                                    <span>Total de saídas</span>
+                                    <strong id="thermo-total-out">R$ 0,00</strong>
                                 </div>
                                 <div>
-                                    <span>Estratégia Ativa</span>
-                                    <strong id="snapshot-estrategia">Padrão</strong>
+                                    <span>Estratégia ativa</span>
+                                    <strong id="snapshot-estrategia">—</strong>
                                 </div>
                             </div>
                         </article>
@@ -276,6 +227,7 @@
                         </div>
                         <div id="recent-list" class="transaction-list"></div>
                     </article>
+
                 </div>
             </section>
 
@@ -497,9 +449,9 @@
             <section class="view" :class="{ 'is-active': view === 'metas' }" id="view-metas" aria-labelledby="meta-title">
                 <div class="page-heading">
                     <div>
-                        <p class="eyebrow">Configurações Financeiras</p>
-                        <h1 id="meta-title">Metas do Mês</h1>
-                        <p>Ajuste os parâmetros de economia e o limite de proteção diária para o mês selecionado.</p>
+                        <p class="eyebrow">Parâmetros do sistema</p>
+                        <h1 id="meta-title">Configurações</h1>
+                        <p>Defina metas mensais e as regras do termômetro. Tudo aqui afeta diretamente o dashboard.</p>
                     </div>
                     <button class="secondary-button back-button" type="button" @click="goBack()">
                         <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
@@ -514,6 +466,12 @@
                 <div id="meta-content">
                     <div class="import-grid">
                         <article class="panel upload-panel">
+                            <div class="panel-heading" style="margin-bottom: 20px;">
+                                <div>
+                                    <span class="panel-kicker">Por mês</span>
+                                    <h2>Meta de Investimento</h2>
+                                </div>
+                            </div>
                             <form id="meta-form">
                                 <input id="meta-id" type="hidden">
 
@@ -524,28 +482,31 @@
                                             <input id="meta-percentual" type="text" required inputmode="decimal" placeholder="20,00">
                                             <i style="left: auto; right: 12px; font-style: normal;">%</i>
                                         </div>
+                                        <small style="color: var(--ink-soft); font-size: 11px; display: block; margin-top: 4px;">
+                                            Percentual da renda que você quer investir este mês. Ex: 20 = guardar R$ 200 de cada R$ 1.000 recebidos.
+                                        </small>
                                     </label>
 
                                     <label class="field">
-                                        <span>Orçamento Diário Mínimo de Proteção</span>
+                                        <span>Piso Diário de Sobrevivência (Mínimo Diário)</span>
                                         <div class="money-input">
                                             <i>R$</i>
                                             <input id="meta-diario-minimo" type="text" required inputmode="decimal" placeholder="0,00">
                                         </div>
                                         <small style="color: var(--ink-soft); font-size: 11px; display: block; margin-top: 4px;">
-                                            Impede o termômetro de sugerir gastos abaixo desta linha de segurança diária.
+                                            Se uma compra fizer seu dinheiro para o dia a dia cair abaixo desse valor, o termômetro vai te alertar para não comprar. (Pode deixar 0,00 se não quiser usar).
                                         </small>
                                     </label>
 
                                     <label class="field">
                                         <span>Motivo / Contexto do Mês <small>opcional</small></span>
-                                        <textarea id="meta-motivo" rows="3" maxlength="255" placeholder="Ex: Mês de férias, bônus corporativo, despesas extras com IPVA"></textarea>
+                                        <textarea id="meta-motivo" rows="2" maxlength="255" placeholder="Ex: Mês de férias, bônus corporativo, despesas extras com IPVA"></textarea>
                                     </label>
                                 </div>
 
                                 <div style="margin-top: 20px;">
                                     <button class="primary-button full-width" type="submit">
-                                        Salvar Parâmetros da Meta
+                                        Salvar Meta do Mês
                                     </button>
                                 </div>
                             </form>
@@ -554,21 +515,101 @@
                         <article class="panel history-panel" style="padding: 25px;">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="panel-kicker">Status de Auditoria</span>
-                                    <h2>Vigência Aplicada</h2>
+                                    <span class="panel-kicker">Status</span>
+                                    <h2>Vigência Atual</h2>
                                 </div>
                             </div>
                             <div style="margin-top: 20px; padding: 15px; border-radius: 11px; background: var(--surface-muted);">
                                 <p id="meta-status-vigencia" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.5;"></p>
                             </div>
-                            <div class="import-warning" style="margin-top: 20px; background: var(--blue-light); color: var(--blue);">
+                            <div class="import-warning" style="margin-top: 20px; background: var(--blue-light);">
                                 <svg aria-hidden="true"><use href="#icon-info"></use></svg>
                                 <p style="color: var(--ink);">
-                                    <strong>Como funciona?</strong> As alterações afetarão imediatamente o cálculo de temperatura do termômetro e o cálculo de margem diária restante no Dashboard.
+                                    <strong>Metas são por mês.</strong> Use o seletor de mês no topo para configurar meses diferentes. A meta atual vale para o mês exibido no dashboard.
                                 </p>
                             </div>
                         </article>
                     </div>
+
+                    <article class="panel" style="margin-top: 16px; padding: 25px;">
+                        <div class="panel-heading" style="margin-bottom: 10px;">
+                            <div>
+                                <span class="panel-kicker">Permanente</span>
+                                <h2>Regras do Termômetro</h2>
+                            </div>
+                        </div>
+                        <p style="margin: 0 0 24px; color: var(--ink-soft); font-size: 13px; line-height: 1.6;">
+                            Define quando seu mês fica <strong style="color: var(--green);">Saudável</strong>, em <strong style="color: var(--amber);">Atenção</strong> ou <strong style="color: var(--red);">Crítico</strong>. Estas regras valem para todos os meses.
+                        </p>
+
+                        <form id="termometro-form" style="margin-top: 20px;">
+                            <input id="termometro-id" type="hidden">
+
+                            <div class="system-banner">
+                                <span>✨ Como funcionam as Regras do Termômetro?</span><br>
+                                No futuro, o sistema fará a leitura automática do seu histórico para sugerir essas métricas. Por enquanto, preencha os parâmetros abaixo para o Termômetro saber exatamente quando o seu mês está Saudável ou Crítico.
+                            </div>
+
+                            <div class="form-grid">
+                                <label class="field field-wide">
+                                    <span>Reserva de Emergência Intocável</span>
+                                    <div class="money-input">
+                                        <i>R$</i>
+                                        <input id="term-reserva" type="text" required inputmode="decimal" placeholder="24000,00">
+                                    </div>
+                                    <div class="system-hint">
+                                        <strong>Como calcular:</strong>
+                                        O ideal é cobrir 6 meses do custo de vida essencial compartilhado (aluguel, mercado, contas). O sistema vai barrar simulações de compra que usem esse dinheiro.
+                                        <em>Exemplo: R$ 4.000/mês × 6 meses = R$ 24.000,00</em>
+                                    </div>
+                                </label>
+
+                                <label class="field">
+                                    <span>Limite de Parcelas e Fixas (%)</span>
+                                    <div class="money-input">
+                                        <input id="term-comprometimento" type="text" required inputmode="decimal" placeholder="30,00">
+                                        <i style="left: auto; right: 12px;">%</i>
+                                    </div>
+                                    <div class="system-hint">
+                                        <strong>Recomendado: 30% a 35%</strong>
+                                        Manter o custo fixo baixo é o segredo para ter caixa livre. Se a renda é R$ 10.000, as fixas e boletos não devem passar de R$ 3.000 para garantir aportes pesados no fim do mês.
+                                    </div>
+                                </label>
+
+                                <label class="field">
+                                    <span>Margem de Segurança (%)</span>
+                                    <div class="money-input">
+                                        <input id="term-margem" type="text" required inputmode="decimal" placeholder="5,00">
+                                        <i style="left: auto; right: 12px;">%</i>
+                                    </div>
+                                    <div class="system-hint">
+                                        <strong>Recomendado: 5% a 10%</strong>
+                                        É a "gordura" contra o estresse. O sistema separa essa fatia na conta corrente só para absorver imprevistos (um remédio, um pneu), sem precisar resgatar investimentos.
+                                    </div>
+                                </label>
+
+                                <label class="field field-wide">
+                                    <span>Estratégia do Termômetro</span>
+                                    <select id="term-estrategia" required style="width: 100%; height: 43px; border: 1px solid var(--line); border-radius: 10px; background: #fff;">
+                                        <option value="CONSERVADORA">Conservadora (Foco em proteção e aportes)</option>
+                                        <option value="MODERADA">Moderada (Equilíbrio entre gastar e guardar)</option>
+                                        <option value="AGRESSIVA">Flexível (Permite gastar mais da margem livre)</option>
+                                        <option value="PERSONALIZADA">Personalizada</option>
+                                    </select>
+                                    <div class="system-hint">
+                                        <strong>Recomendação: Conservadora</strong>
+                                        Excelente para acelerar independência financeira. Ela prioriza proteger sua reserva e bater a meta de investimentos antes de te dar "sinal verde" para gastar com supérfluos.
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <button class="primary-button full-width" type="submit">
+                                    Salvar Regras do Termômetro
+                                </button>
+                            </div>
+                        </form>
+                    </article>
                 </div>
             </section>
         </div>

@@ -3,6 +3,7 @@ package br.com.contastermometro.orcamento.domain
 import br.com.contastermometro.lancamentos.dto.LancamentoResponse
 import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 object CalculadoraGastoDiario {
 
@@ -17,11 +18,13 @@ object CalculadoraGastoDiario {
      * Necessita do limite mensal total disponível para gastos diários e do progresso do mês.
      */
     fun calcularGastoDiarioEsperadoAteHoje(
-        limiteMensalGastoDiario: BigDecimal, // O que sobrou das entradas após pagar fixas e investir
+        limiteMensalGastoDiario: BigDecimal,
         diaAtual: Int,
         totalDiasDoMes: Int
     ): BigDecimal {
-        return limiteMensalGastoDiario / totalDiasDoMes.toBigDecimal()
+        if (totalDiasDoMes == 0) return BigDecimal.ZERO
+        val taxaDiaria = limiteMensalGastoDiario.divide(totalDiasDoMes.toBigDecimal(), 4, RoundingMode.HALF_UP)
+        return taxaDiaria.multiply(diaAtual.toBigDecimal()).setScale(2, RoundingMode.HALF_UP)
     }
 
     /**

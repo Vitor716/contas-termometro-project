@@ -20,6 +20,7 @@ object CalculadoraInvestimentos {
     }
 
     fun calcularPerformanceContraMeta(porcentagemInvestida: BigDecimal, meta: BigDecimal): BigDecimal {
-        return porcentagemInvestida.minus(meta)
+        if (meta.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO
+        return porcentagemInvestida.divide(meta, 4, RoundingMode.HALF_UP)
     }
 }

@@ -18,7 +18,11 @@ class GlobalExceptionHandler {
         private val LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
     }
 
-    @ExceptionHandler(LancamentoNaoEncontradoException::class, MethodArgumentNotValidException::class)
+    @ExceptionHandler(
+        LancamentoNaoEncontradoException::class,
+        MethodArgumentNotValidException::class
+
+    )
     fun handleLancamentoNaoEncontradoException(
         ex: LancamentoNaoEncontradoException,
         request: HttpServletRequest

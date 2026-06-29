@@ -54,17 +54,25 @@ class AnalisadorTermometroListenerImpl(
             saldoDisponivel
         }
 
-        val status = classificarStatusTermometro(limiteDiarioRestante, totalInvestido, meta, configuracao)
+        val status = classificarStatusTermometro(limiteDiarioRestante, totalInvestido, entradas, meta, configuracao)
 
-        val performanceBps = calcularPerformanceBps(totalInvestido, meta.percentualMetaInvestimento)
+        val performanceBps = calcularPerformanceBps(totalInvestido, entradas, meta.percentualMetaInvestimento)
 
-        val snapshot = SnapshotTermometroMensal(
-            mesReferencia = mesReferencia,
-            statusAtual = status,
-            gastoDiarioRestanteCentavos = limiteDiarioRestante,
-            totalInvestidoCentavos = totalInvestido,
-            performanceContraMetaBps = performanceBps
-        )
+        val snapshotExistente = snapshotTermometroRepository.findById(mesReferencia).orElse(null)
+
+        val snapshot = snapshotExistente?.apply {
+            this.statusAtual = status
+            this.gastoDiarioRestanteCentavos = limiteDiarioRestante
+            this.totalInvestidoCentavos = totalInvestido
+            this.performanceContraMetaBps = performanceBps
+        }
+            ?: SnapshotTermometroMensal(
+                mesReferencia = mesReferencia,
+                statusAtual = status,
+                gastoDiarioRestanteCentavos = limiteDiarioRestante,
+                totalInvestidoCentavos = totalInvestido,
+                performanceContraMetaBps = performanceBps
+            )
 
         snapshotTermometroRepository.save(snapshot)
     }
@@ -79,6 +87,7 @@ class AnalisadorTermometroListenerImpl(
     private fun classificarStatusTermometro(
         limiteDiarioRestante: BigDecimal,
         totalInvestido: BigDecimal,
+        entradas: BigDecimal,
         meta: MetaMensalResponse,
         configuracao: TermometroResponse
     ): StatusTermometro {
@@ -86,18 +95,18 @@ class AnalisadorTermometroListenerImpl(
             return StatusTermometro.VERMELHO
         }
 
-        val valorMetaInvestimento = meta.percentualMetaInvestimento
-        if (totalInvestido < valorMetaInvestimento) {
+        val metaEmReais = entradas.multiply(meta.percentualMetaInvestimento)
+        if (totalInvestido < metaEmReais) {
             return StatusTermometro.AMARELO
         }
 
         return StatusTermometro.VERDE
     }
 
-    private fun calcularPerformanceBps(investido: BigDecimal, metaInvestimento: BigDecimal): Int {
-        if (metaInvestimento <= BigDecimal.ZERO) return 0
-
-        val percentualAtingido = investido.divide(metaInvestimento, 4, RoundingMode.HALF_UP)
-        return percentualAtingido.multiply(BigDecimal(10000)).toInt()
+    private fun calcularPerformanceBps(investido: BigDecimal, entradas: BigDecimal, metaPercentual: BigDecimal): Int {
+        if (entradas <= BigDecimal.ZERO || metaPercentual <= BigDecimal.ZERO) return 0
+        val metaEmReais = entradas.multiply(metaPercentual)
+        val ratio = investido.divide(metaEmReais, 4, RoundingMode.HALF_UP)
+        return ratio.multiply(BigDecimal(10000)).toInt()
     }
 }

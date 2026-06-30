@@ -291,7 +291,7 @@ Critérios de aceite:
 - regras financeiras não são duplicadas no navegador;
 - componentes não dependem de um estado global único.
 
-## MVP 4 - Metas e limites financeiros — ⬜
+## MVP 4 - Metas e limites financeiros — ✅
 
 Objetivo: fornecer parâmetros reais para o consultor.
 
@@ -310,7 +310,7 @@ Critérios de aceite:
 - mudanças afetam novas simulações;
 - histórico financeiro não é recalculado silenciosamente.
 
-## MVP 5 - Motor de tomada de decisão — ⬜
+## MVP 5 - Motor de tomada de decisão — (EM BREVE)
 
 Objetivo: responder se uma compra cabe e qual alternativa é mais saudável.
 

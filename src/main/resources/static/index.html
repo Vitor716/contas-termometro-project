@@ -3,10 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f4f1ea">
+    <meta name="theme-color" content="#0d1117">
     <meta name="description" content="Controle financeiro pessoal local e simples.">
     <title>Contas Termômetro</title>
     <link rel="stylesheet" href="/css/app.css">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
 <div class="app-shell" x-data="appShell" x-cloak>
@@ -86,542 +87,444 @@
         </header>
 
         <div class="content">
-            <section class="view" :class="{ 'is-active': view === 'dashboard' }" id="view-dashboard" aria-labelledby="dashboard-title">
+            <!-- ═══════════════ DASHBOARD ═══════════════ -->
+            <div id="dashboard-content" class="view" :class="{ 'is-active': view === 'dashboard' }">
                 <div class="page-heading">
                     <div>
-                        <p class="eyebrow">Seu dinheiro, sem ruído</p>
-                        <h1 id="dashboard-title">Visão de <span id="dashboard-month-name">este mês</span></h1>
-                        <p>Veja o que entrou, o que saiu e como está sua meta de economia.</p>
-                    </div>
-                    <button class="secondary-button" id="refresh-dashboard" type="button">
-                        <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
-                        Atualizar
-                    </button>
-                </div>
-
-                <div class="loading-panel" id="dashboard-loading" hidden>
-                    <span class="spinner"></span> Calculando seu mês...
-                </div>
-
-                <div id="dashboard-content">
-                    <div class="metric-grid">
-                        <article class="metric-card is-clickable" role="button" tabindex="0"
-                                 @click="showEntries('ENTRADA', 'Entradas')"
-                                 @keydown.enter.prevent="showEntries('ENTRADA', 'Entradas')"
-                                 @keydown.space.prevent="showEntries('ENTRADA', 'Entradas')">
-                            <div class="metric-label"><span class="metric-icon income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span> Entradas</div>
-                            <strong id="metric-income">R$ 0,00</strong>
-                            <small>Recebido no mês</small>
-                            <span class="metric-action">Ver entradas <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
-                        </article>
-                        <article class="metric-card is-clickable" role="button" tabindex="0"
-                                 @click="showEntries('SAIDA_FIXA', 'Saídas fixas')"
-                                 @keydown.enter.prevent="showEntries('SAIDA_FIXA', 'Saídas fixas')"
-                                 @keydown.space.prevent="showEntries('SAIDA_FIXA', 'Saídas fixas')">
-                            <div class="metric-label"><span class="metric-icon fixed"><svg aria-hidden="true"><use href="#icon-home"></use></svg></span> Saídas fixas</div>
-                            <strong id="metric-fixed">R$ 0,00</strong>
-                            <small>Compromissos do mês</small>
-                            <span class="metric-action">Ver saídas fixas <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
-                        </article>
-                        <article class="metric-card is-clickable" role="button" tabindex="0"
-                                 @click="showEntries('GASTO_DIARIO', 'Gastos diários')"
-                                 @keydown.enter.prevent="showEntries('GASTO_DIARIO', 'Gastos diários')"
-                                 @keydown.space.prevent="showEntries('GASTO_DIARIO', 'Gastos diários')">
-                            <div class="metric-label"><span class="metric-icon daily"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span> Gastos diários</div>
-                            <strong id="metric-daily">R$ 0,00</strong>
-                            <small>Variáveis e dia a dia</small>
-                            <span class="metric-action">Ver gastos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
-                        </article>
-                        <article class="metric-card featured is-clickable" role="button" tabindex="0"
-                                 @click="showAllEntries()"
-                                 @keydown.enter.prevent="showAllEntries()"
-                                 @keydown.space.prevent="showAllEntries()">
-                            <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span> Saldo do mês</div>
-                            <strong id="metric-balance">R$ 0,00</strong>
-                            <small id="balance-caption">Resultado até agora</small>
-                            <span class="metric-action">Ver movimentações <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
-                        </article>
-                    </div>
-
-                    <div class="dashboard-grid">
-                        <article class="panel thermometer-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="panel-kicker">Saúde Financeira</span>
-                                    <h2 id="temperature-title">Status do Termômetro</h2>
-                                </div>
-                                <span class="status-pill" id="temperature-status">Calculando...</span>
-                            </div>
-
-                            <p id="temperature-description">Baseado na sua estratégia e nos lançamentos do mês.</p>
-
-                            <div style="margin-top: 22px;">
-                                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                                    <span style="font-size: 10px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .07em;">Meta de Investimento</span>
-                                    <strong id="metric-performance" style="font-size: 13px; font-weight: 800; color: var(--purple);">0%</strong>
-                                </div>
-                                <div class="thermometer-track">
-                                    <span id="thermometer-fill" class="thermometer-fill"></span>
-                                    <i style="left:25%"></i>
-                                    <i style="left:50%"></i>
-                                    <i style="left:75%"></i>
-                                </div>
-                                <div class="thermometer-labels">
-                                    <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-                                </div>
-                            </div>
-
-                            <div style="display: flex; justify-content: space-between; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);">
-                                <div>
-                                    <span style="display: block; color: var(--ink-soft); font-size: 10px; margin-bottom: 4px;">Investido este mês</span>
-                                    <strong id="thermo-invested" style="font: 700 17px 'Manrope', sans-serif; color: var(--purple);">R$ 0,00</strong>
-                                </div>
-                                <div style="text-align: right;">
-                                    <span style="display: block; color: var(--ink-soft); font-size: 10px; margin-bottom: 4px;">Meta do mês</span>
-                                    <strong id="thermo-goal" style="font: 700 17px 'Manrope', sans-serif;">R$ 0,00</strong>
-                                </div>
-                            </div>
-
-                            <div class="thermometer-stats" style="margin-top: 16px; padding-top: 16px; grid-template-columns: 1fr 1fr;">
-                                <div style="padding-left: 0;">
-                                    <span>Total de saídas</span>
-                                    <strong id="thermo-total-out">R$ 0,00</strong>
-                                </div>
-                                <div>
-                                    <span>Estratégia ativa</span>
-                                    <strong id="snapshot-estrategia">—</strong>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article class="panel daily-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="panel-kicker">Ritmo de gastos</span>
-                                    <h2>Orçamento diário</h2>
-                                </div>
-                                <span class="round-icon"><svg aria-hidden="true"><use href="#icon-calendar"></use></svg></span>
-                            </div>
-                            <div class="daily-available">
-                                <span>Disponível no período</span>
-                                <strong id="metric-daily-remaining">R$ 0,00</strong>
-                            </div>
-                            <div class="progress-row">
-                                <div class="progress-bar"><span id="daily-progress"></span></div>
-                                <small id="daily-progress-label">Aguardando lançamentos</small>
-                            </div>
-                            <div class="daily-comparison">
-                                <div><span>Gasto até agora</span><strong id="daily-spent">R$ 0,00</strong></div>
-                                <div><span>Esperado até hoje</span><strong id="daily-expected">R$ 0,00</strong></div>
-                            </div>
-                        </article>
-                    </div>
-
-                    <article class="panel recent-panel">
-                        <div class="panel-heading">
-                            <div>
-                                <span class="panel-kicker">Últimos movimentos</span>
-                                <h2>Lançamentos recentes</h2>
-                            </div>
-                            <button class="text-button" type="button" @click="showAllEntries()">Ver todos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></button>
-                        </div>
-                        <div id="recent-list" class="transaction-list"></div>
-                    </article>
-
-                </div>
-            </section>
-
-            <section class="view" :class="{ 'is-active': view === 'lancamentos' }" id="view-lancamentos" aria-labelledby="entries-title">
-                <div class="page-heading">
-                    <div>
-                        <p class="eyebrow">Movimentações</p>
-                        <h1 id="entries-title">Lançamentos do mês</h1>
-                        <p>Registre e revise tudo que movimentou seu orçamento.</p>
+                        <p class="eyebrow" id="dashboard-month-name"></p>
+                        <h1>Visão <span>Mensal</span></h1>
                     </div>
                     <div class="page-actions">
-                        <button class="secondary-button back-button" type="button" @click="goBack()">
-                            <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
-                            Voltar
-                        </button>
-                        <button class="primary-button" id="new-entry-page" type="button">
-                            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
-                            Novo lançamento
+                        <button class="secondary-button" id="refresh-dashboard" type="button" aria-label="Atualizar dados">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
                         </button>
                     </div>
                 </div>
 
-                <div class="filter-context" id="entry-filter-context" hidden>
-                    <span><svg aria-hidden="true"><use href="#icon-info"></use></svg> <strong id="entry-filter-label"></strong></span>
-                    <button type="button" id="clear-entry-context">Mostrar todos</button>
+                <div id="dashboard-loading" hidden class="loading-panel">
+                    <span class="spinner"></span> Carregando resumo...
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-card is-clickable" @click="showEntries('ENTRADA', 'Entradas')">
+                        <div class="metric-label"><span class="metric-icon income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span> Entradas</div>
+                        <strong id="metric-income">R$ 0,00</strong>
+                        <div class="metric-action">Ver lançamentos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></div>
+                    </div>
+                    <div class="metric-card is-clickable" @click="showEntries('SAIDA_FIXA', 'Saídas fixas')">
+                        <div class="metric-label"><span class="metric-icon fixed"><svg aria-hidden="true"><use href="#icon-home"></use></svg></span> Saídas fixas</div>
+                        <strong id="metric-fixed">R$ 0,00</strong>
+                        <div class="metric-action">Ver lançamentos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></div>
+                    </div>
+                    <div class="metric-card is-clickable" @click="showEntries('GASTO_DIARIO', 'Gastos diários')">
+                        <div class="metric-label"><span class="metric-icon daily"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span> Gastos diários</div>
+                        <strong id="metric-daily">R$ 0,00</strong>
+                        <div class="metric-action">Ver lançamentos <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></div>
+                    </div>
+                    <div class="metric-card featured">
+                        <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span> Saldo</div>
+                        <strong id="metric-balance">R$ 0,00</strong>
+                        <small id="balance-caption">Resultado até agora</small>
+                    </div>
+                </div>
+
+                <!-- Top row: Thermometer + Daily side by side -->
+                <div class="dashboard-grid">
+                    <!-- ── Saúde Financeira (Progress Gauge) ── -->
+                    <section class="panel thermometer-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="panel-kicker">Saúde Financeira</p>
+                                <h2 id="temperature-title">Termômetro</h2>
+                            </div>
+                            <span id="temperature-status" class="status-pill good">Calculando</span>
+                        </div>
+                        <p id="temperature-description">Avaliando seus investimentos com base na meta mensal...</p>
+
+                        <!-- Executive progress gauge (replaces thermometer bar) -->
+                        <div class="gauge-wrap">
+                            <div class="gauge-header-row">
+                                <span>Progresso da meta de investimento</span>
+                                <strong id="metric-performance">0%</strong>
+                            </div>
+                            <div class="gauge-track-outer">
+                                <div id="thermometer-fill" class="gauge-fill"></div>
+                                <span class="gauge-milestone" style="left: 80%"></span>
+                            </div>
+                            <div class="gauge-scale">
+                                <span>0%</span>
+                                <span class="gauge-scale-meta">100% ✓</span>
+                            </div>
+                        </div>
+
+                        <div class="thermometer-stats">
+                            <div>
+                                <span>Investido</span>
+                                <strong id="thermo-invested">R$ 0,00</strong>
+                            </div>
+                            <div>
+                                <span>Meta de investimento</span>
+                                <strong id="thermo-goal">R$ 0,00</strong>
+                            </div>
+                            <div>
+                                <span>Saídas totais</span>
+                                <strong id="thermo-total-out">R$ 0,00</strong>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── Controle Diário ── -->
+                    <section class="panel daily-panel">
+                        <div class="panel-heading">
+                            <h2>Controle Diário</h2>
+                            <span class="round-icon"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span>
+                        </div>
+
+                        <div class="daily-available">
+                            <span>Disponível para hoje e amanhã</span>
+                            <strong id="metric-daily-remaining">R$ 0,00</strong>
+                        </div>
+
+                        <div class="progress-row">
+                            <div class="progress-bar"><span id="daily-progress"></span></div>
+                            <small id="daily-progress-label">Calculando ritmo...</small>
+                        </div>
+
+                        <!-- Ideal vs Atual: clearly labeled -->
+                        <div class="daily-comparison">
+                            <div>
+                                <span class="comp-label">
+                                    <svg aria-hidden="true"><use href="#icon-wallet"></use></svg>
+                                    Gasto atual
+                                </span>
+                                <strong id="daily-spent">R$ 0,00</strong>
+                            </div>
+                            <div>
+                                <span class="comp-label ideal-label">
+                                    <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
+                                    Ritmo ideal agora
+                                </span>
+                                <strong id="daily-expected">R$ 0,00</strong>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic delta message -->
+                        <div id="daily-delta" class="daily-delta" hidden></div>
+                    </section>
+                </div>
+
+                <!-- Recent entries: full-width, always visible -->
+                <section class="panel recent-panel">
+                    <div class="panel-heading">
+                        <h2>Recentes</h2>
+                        <button class="text-button" @click="showAllEntries()">Ver tudo <svg aria-hidden="true"><use href="#icon-arrow-right"></use></svg></button>
+                    </div>
+                    <div id="recent-list" class="transaction-list">
+                    </div>
+                </section>
+            </div>
+
+            <!-- ═══════════════ LANÇAMENTOS ═══════════════ -->
+            <div id="lancamentos-content" class="view" :class="{ 'is-active': view === 'lancamentos' }">
+                <div class="page-heading">
+                    <div>
+                        <button class="ghost-button back-button" @click="goBack()" style="margin-left: -15px; margin-bottom: 5px;"><svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg> Voltar</button>
+                        <h1 id="entries-title">Lançamentos do mês</h1>
+                    </div>
+                    <div class="page-actions">
+                        <button class="primary-button" id="new-entry-page" type="button"><svg aria-hidden="true"><use href="#icon-plus"></use></svg> Novo</button>
+                    </div>
                 </div>
 
                 <div class="toolbar">
-                    <label class="search-field">
+                    <div class="search-field">
                         <svg aria-hidden="true"><use href="#icon-search"></use></svg>
-                        <span class="sr-only">Buscar lançamentos</span>
-                        <input id="entry-search" type="search" placeholder="Buscar por descrição ou categoria">
-                    </label>
-                    <label class="select-field">
-                        <span class="sr-only">Filtrar por tipo</span>
-                        <select id="entry-type-filter">
-                            <option value="">Todos os tipos</option>
-                            <option value="ENTRADA">Entradas</option>
-                            <option value="SAIDA_FIXA">Saídas fixas</option>
-                            <option value="GASTO_DIARIO">Gastos diários</option>
-                            <option value="INVESTIMENTO">Investimentos</option>
-                            <option value="AJUSTE_SALDO">Ajustes de saldo</option>
-                        </select>
-                    </label>
+                        <input id="entry-search" type="search" placeholder="Buscar por descrição ou categoria...">
+                    </div>
+                    <div class="toolbar-filters">
+                        <div class="select-field">
+                            <select id="entry-type-filter" aria-label="Filtrar por tipo">
+                                <option value="">Todos os tipos</option>
+                                <option value="ENTRADA">Entradas</option>
+                                <option value="SAIDA_FIXA">Saídas fixas</option>
+                                <option value="GASTO_DIARIO">Gastos diários</option>
+                                <option value="INVESTIMENTO">Investimentos</option>
+                                <option value="AJUSTE_SALDO">Ajustes</option>
+                            </select>
+                        </div>
+                        <!-- Recurring filter pill -->
+                        <button id="recurring-filter-toggle" class="filter-pill" type="button" aria-pressed="false">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                            Recorrentes
+                        </button>
+                    </div>
                 </div>
 
-                <article class="panel table-panel">
+                <div id="entry-filter-context" class="filter-context" hidden>
+                    <span><svg aria-hidden="true"><use href="#icon-info"></use></svg> <span id="entry-filter-label"></span></span>
+                    <button id="clear-entry-context" type="button">Limpar filtro</button>
+                </div>
+
+                <div class="panel table-panel">
                     <div class="table-wrap">
                         <table>
                             <thead>
-                            <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th class="amount-column">Valor</th><th><span class="sr-only">Ações</span></th></tr>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Tipo</th>
+                                <th>Categoria</th>
+                                <th class="amount-column">Valor</th>
+                                <th></th>
+                            </tr>
                             </thead>
-                            <tbody id="entries-table-body"></tbody>
+                            <tbody id="entries-table-body">
+                            </tbody>
                         </table>
                     </div>
+                    <div class="table-footer">
+                        <span id="entry-count">0 lançamentos</span>
+                        <strong id="entry-net-total">Saldo listado: R$ 0,00</strong>
+                    </div>
+
                     <div id="entries-empty" class="empty-state" hidden>
                         <span><svg aria-hidden="true"><use href="#icon-receipt"></use></svg></span>
                         <h3>Nenhum lançamento encontrado</h3>
-                        <p>Registre a primeira movimentação deste mês.</p>
-                        <button class="secondary-button" id="new-entry-empty" type="button">Criar lançamento</button>
+                        <p>Tente ajustar os filtros de busca ou crie um novo registro.</p>
+                        <button class="secondary-button" id="new-entry-empty" type="button">Criar primeiro lançamento</button>
                     </div>
-                    <div class="table-footer"><span id="entry-count">0 lançamentos</span><strong id="entry-net-total">Saldo listado: R$ 0,00</strong></div>
-                </article>
-            </section>
+                </div>
+            </div>
 
-            <section class="view" :class="{ 'is-active': view === 'anual' }" id="view-anual" aria-labelledby="annual-title">
+            <!-- ═══════════════ VISÃO ANUAL ═══════════════ -->
+            <div id="anual-content" class="view" :class="{ 'is-active': view === 'anual' }">
                 <div class="page-heading annual-heading">
                     <div>
-                        <p class="eyebrow">Panorama financeiro</p>
-                        <h1 id="annual-title">Visão anual de <span id="annual-year-label"></span></h1>
-                        <p>Compare entradas, saídas, investimentos e saldo ao longo dos 12 meses.</p>
+                        <p class="eyebrow">Resumo do Ano</p>
+                        <h1>Panorama <span id="annual-year-label">2026</span></h1>
                     </div>
-                    <div class="year-control">
-                        <button class="secondary-button back-button" type="button" @click="goBack()">
-                            <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
-                            Voltar
-                        </button>
-                        <button id="previous-year" type="button" class="icon-button" aria-label="Ano anterior">
-                            <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
-                        </button>
-                        <label>
-                            <span class="sr-only">Ano do panorama</span>
+                    <div class="page-actions">
+                        <div class="year-control">
+                            <button id="previous-year" class="icon-button"><svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg></button>
                             <input id="year-picker" type="number" min="2000" max="2100" step="1">
-                        </label>
-                        <button id="next-year" type="button" class="icon-button" aria-label="Próximo ano">
-                            <svg aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
-                        </button>
-                        <button id="refresh-annual" class="secondary-button" type="button">
-                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
-                            Atualizar
-                        </button>
-                    </div>
-                </div>
-
-                <div class="loading-panel" id="annual-loading" hidden>
-                    <span class="spinner"></span> Consolidando os 12 meses...
-                </div>
-
-                <div id="annual-content">
-                    <div class="metric-grid annual-metrics">
-                        <article class="metric-card">
-                            <div class="metric-label"><span class="metric-icon income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span> Entradas no ano</div>
-                            <strong id="annual-income">R$ 0,00</strong>
-                            <small id="annual-income-average">Média mensal: R$ 0,00</small>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label"><span class="metric-icon fixed"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span> Saídas operacionais</div>
-                            <strong id="annual-out">R$ 0,00</strong>
-                            <small id="annual-out-average">Média mensal: R$ 0,00</small>
-                        </article>
-                        <article class="metric-card">
-                            <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span> Investido no ano</div>
-                            <strong id="annual-invested">R$ 0,00</strong>
-                            <small id="annual-invested-rate">0% das entradas</small>
-                        </article>
-                        <article class="metric-card featured">
-                            <div class="metric-label"><span class="metric-icon balance"><svg aria-hidden="true"><use href="#icon-chart"></use></svg></span> Saldo acumulado</div>
-                            <strong id="annual-balance">R$ 0,00</strong>
-                            <small id="annual-active-months">0 meses com movimentação</small>
-                        </article>
-                    </div>
-
-                    <div class="annual-grid">
-                        <article class="panel annual-chart-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="panel-kicker">Evolução mensal</span>
-                                    <h2>Entradas, saídas e investimentos</h2>
-                                </div>
-                                <div class="chart-legend" aria-label="Legenda do gráfico">
-                                    <span><i class="income"></i>Entradas</span>
-                                    <span><i class="out"></i>Saídas</span>
-                                    <span><i class="investment"></i>Investido</span>
-                                </div>
-                            </div>
-                            <div id="annual-chart" class="annual-chart"></div>
-                        </article>
-
-                        <article class="panel annual-highlights">
-                            <div class="panel-heading">
-                                <div><span class="panel-kicker">Destaques</span><h2>Leitura rápida do ano</h2></div>
-                            </div>
-                            <div class="highlight-list">
-                                <div>
-                                    <span class="highlight-icon good"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span>
-                                    <p><small>Maior entrada</small><strong id="annual-best-income">—</strong><span id="annual-best-income-value">R$ 0,00</span></p>
-                                </div>
-                                <div>
-                                    <span class="highlight-icon investment"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span>
-                                    <p><small>Maior investimento</small><strong id="annual-best-investment">—</strong><span id="annual-best-investment-value">R$ 0,00</span></p>
-                                </div>
-                                <div>
-                                    <span class="highlight-icon warning"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span>
-                                    <p><small>Maior saída</small><strong id="annual-highest-out">—</strong><span id="annual-highest-out-value">R$ 0,00</span></p>
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-
-                    <article class="panel annual-months-panel">
-                        <div class="panel-heading">
-                            <div>
-                                <span class="panel-kicker">Detalhamento</span>
-                                <h2>Todos os meses</h2>
-                            </div>
-                            <small>Clique em um mês para abrir seus lançamentos</small>
+                            <button id="next-year" class="icon-button"><svg aria-hidden="true"><use href="#icon-chevron-right"></use></svg></button>
                         </div>
-                        <div id="annual-months-grid" class="annual-months-grid"></div>
-                    </article>
+                        <button id="refresh-annual" class="secondary-button"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg> Atualizar</button>
+                    </div>
                 </div>
-            </section>
 
-            <section class="view" :class="{ 'is-active': view === 'importacao' }" id="view-importacao" aria-labelledby="import-title">
+                <div id="annual-loading" hidden class="loading-panel"><span class="spinner"></span> Consolidando ano...</div>
+
+                <div class="metric-grid annual-metrics">
+                    <div class="metric-card"><div class="metric-label">Total de Entradas</div><strong id="annual-income">R$ 0,00</strong><small id="annual-income-average"></small></div>
+                    <div class="metric-card"><div class="metric-label">Total de Saídas</div><strong id="annual-out">R$ 0,00</strong><small id="annual-out-average"></small></div>
+                    <div class="metric-card"><div class="metric-label">Total Investido</div><strong id="annual-invested">R$ 0,00</strong><small id="annual-invested-rate"></small></div>
+                    <div class="metric-card featured"><div class="metric-label">Saldo Acumulado</div><strong id="annual-balance">R$ 0,00</strong><small id="annual-active-months"></small></div>
+                </div>
+
+                <div class="annual-grid">
+                    <section class="panel annual-chart-panel">
+                        <div class="panel-heading">
+                            <h2>Evolução Mensal</h2>
+                            <div class="chart-legend">
+                                <span><i class="income"></i> Entradas</span>
+                                <span><i class="out"></i> Saídas</span>
+                                <span><i class="investment"></i> Investido</span>
+                            </div>
+                        </div>
+                        <div id="annual-chart" class="annual-chart">
+                        </div>
+                    </section>
+
+                    <section class="panel annual-highlights">
+                        <h2>Destaques do ano</h2>
+                        <div class="highlight-list">
+                            <div><span class="highlight-icon good"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span><p><small>Mês de maior receita</small><strong id="annual-best-income">—</strong><span id="annual-best-income-value">R$ 0,00</span></p></div>
+                            <div><span class="highlight-icon investment"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span><p><small>Mês que mais investiu</small><strong id="annual-best-investment">—</strong><span id="annual-best-investment-value">R$ 0,00</span></p></div>
+                            <div><span class="highlight-icon warning"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span><p><small>Mês de maiores gastos</small><strong id="annual-highest-out">—</strong><span id="annual-highest-out-value">R$ 0,00</span></p></div>
+                        </div>
+                    </section>
+                </div>
+
+                <section class="panel annual-months-panel">
+                    <div class="panel-heading">
+                        <h2>Detalhamento Mensal</h2>
+                        <small>Selecione um mês para ver os lançamentos</small>
+                    </div>
+                    <div id="annual-months-grid" class="annual-months-grid">
+                    </div>
+                </section>
+            </div>
+
+            <!-- ═══════════════ IMPORTAÇÃO ═══════════════ -->
+            <div id="importacao-content" class="view" :class="{ 'is-active': view === 'importacao' }">
                 <div class="page-heading">
                     <div>
-                        <p class="eyebrow">Importação segura</p>
-                        <h1 id="import-title">Importar extrato Nubank</h1>
-                        <p>Envie o CSV exportado pelo banco. O arquivo é processado somente neste computador.</p>
+                        <p class="eyebrow">Ferramentas</p>
+                        <h1>Importar <span>CSV</span></h1>
+                        <p>Selecione o arquivo de extrato gerado pelo seu banco (atualmente suportamos Nubank) para importar os lançamentos automaticamente.</p>
                     </div>
-                    <button class="secondary-button back-button" type="button" @click="goBack()">
-                        <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
-                        Voltar
-                    </button>
                 </div>
 
                 <div class="import-grid">
-                    <article class="panel upload-panel">
-                        <div class="upload-zone" id="upload-zone">
-                            <input id="csv-file" type="file" accept=".csv,text/csv">
+                    <section class="panel upload-panel">
+                        <label id="upload-zone" class="upload-zone">
+                            <input id="csv-file" type="file" accept=".csv">
                             <span class="upload-icon"><svg aria-hidden="true"><use href="#icon-upload"></use></svg></span>
-                            <h2>Solte o arquivo CSV aqui</h2>
-                            <p>ou clique para escolher no computador</p>
-                            <small>Apenas arquivos .csv do Nubank</small>
-                        </div>
+                            <h2>Clique ou arraste um arquivo</h2>
+                            <p>Suporta arquivos .csv do Nubank</p>
+                            <small>Tamanho máximo: 5MB</small>
+                        </label>
+
                         <div id="selected-file" class="selected-file" hidden>
                             <span><svg aria-hidden="true"><use href="#icon-file"></use></svg></span>
-                            <div><strong id="selected-file-name"></strong><small id="selected-file-size"></small></div>
-                            <button id="remove-file" class="icon-button" type="button" aria-label="Remover arquivo"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
+                            <div>
+                                <strong id="selected-file-name">extrato.csv</strong>
+                                <small id="selected-file-size">0 KB</small>
+                            </div>
+                            <button id="remove-file" class="icon-button" type="button"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
                         </div>
+
                         <div class="import-warning">
                             <svg aria-hidden="true"><use href="#icon-info"></use></svg>
-                            <p><strong>Antes de importar</strong>As linhas válidas serão gravadas automaticamente. Você poderá apagar o lote inteiro depois.</p>
+                            <p><strong>Atenção:</strong> Lançamentos importados são marcados como Gastos Diários por padrão e precisam ter sua categoria ajustada manualmente depois.</p>
                         </div>
-                        <button class="primary-button full-width" id="upload-button" type="button" disabled>
-                            Importar lançamentos
-                        </button>
-                    </article>
 
-                    <article class="panel history-panel">
+                        <button id="upload-button" class="primary-button full-width" type="button" disabled>Processar arquivo CSV</button>
+                    </section>
+
+                    <section class="panel history-panel">
                         <div class="panel-heading">
-                            <div><span class="panel-kicker">Histórico</span><h2>Importações recentes</h2></div>
-                            <button class="icon-button" id="refresh-imports" type="button" aria-label="Atualizar importações"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
+                            <h2>Histórico de lotes</h2>
+                            <button id="refresh-imports" class="icon-button"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg></button>
                         </div>
-                        <div id="imports-list" class="imports-list"></div>
-                    </article>
+                        <div id="imports-list" class="imports-list">
+                        </div>
+                    </section>
                 </div>
-            </section>
+            </div>
 
-            <section class="view" :class="{ 'is-active': view === 'metas' }" id="view-metas" aria-labelledby="meta-title">
+            <!-- ═══════════════ CONFIGURAÇÕES ═══════════════ -->
+            <div id="metas-content" class="view" :class="{ 'is-active': view === 'metas' }">
                 <div class="page-heading">
                     <div>
-                        <p class="eyebrow">Parâmetros do sistema</p>
-                        <h1 id="meta-title">Configurações</h1>
-                        <p>Defina metas mensais e as regras do termômetro. Tudo aqui afeta diretamente o dashboard.</p>
+                        <p class="eyebrow">Ajustes Financeiros</p>
+                        <h1>Configurações</h1>
                     </div>
-                    <button class="secondary-button back-button" type="button" @click="goBack()">
-                        <svg aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
-                        Voltar
-                    </button>
                 </div>
 
-                <div class="loading-panel" id="meta-loading" hidden>
-                    <span class="spinner"></span> Carregando diretrizes do mês...
-                </div>
-
-                <div id="meta-content">
-                    <div class="import-grid">
-                        <article class="panel upload-panel">
-                            <div class="panel-heading" style="margin-bottom: 20px;">
-                                <div>
-                                    <span class="panel-kicker">Por mês</span>
-                                    <h2>Meta de Investimento</h2>
-                                </div>
-                            </div>
-                            <form id="meta-form">
-                                <input id="meta-id" type="hidden">
-
-                                <div class="form-grid" style="grid-template-columns: 1fr;">
-                                    <label class="field">
-                                        <span>Percentual Alvo de Investimento (%)</span>
-                                        <div class="money-input">
-                                            <input id="meta-percentual" type="text" required inputmode="decimal" placeholder="20,00">
-                                            <i style="left: auto; right: 12px; font-style: normal;">%</i>
-                                        </div>
-                                        <small style="color: var(--ink-soft); font-size: 11px; display: block; margin-top: 4px;">
-                                            Percentual da renda que você quer investir este mês. Ex: 20 = guardar R$ 200 de cada R$ 1.000 recebidos.
-                                        </small>
-                                    </label>
-
-                                    <label class="field">
-                                        <span>Piso Diário de Sobrevivência (Mínimo Diário)</span>
-                                        <div class="money-input">
-                                            <i>R$</i>
-                                            <input id="meta-diario-minimo" type="text" required inputmode="decimal" placeholder="0,00">
-                                        </div>
-                                        <small style="color: var(--ink-soft); font-size: 11px; display: block; margin-top: 4px;">
-                                            Se uma compra fizer seu dinheiro para o dia a dia cair abaixo desse valor, o termômetro vai te alertar para não comprar. (Pode deixar 0,00 se não quiser usar).
-                                        </small>
-                                    </label>
-
-                                    <label class="field">
-                                        <span>Motivo / Contexto do Mês <small>opcional</small></span>
-                                        <textarea id="meta-motivo" rows="2" maxlength="255" placeholder="Ex: Mês de férias, bônus corporativo, despesas extras com IPVA"></textarea>
-                                    </label>
-                                </div>
-
-                                <div style="margin-top: 20px;">
-                                    <button class="primary-button full-width" type="submit">
-                                        Salvar Meta do Mês
-                                    </button>
-                                </div>
-                            </form>
-                        </article>
-
-                        <article class="panel history-panel" style="padding: 25px;">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="panel-kicker">Status</span>
-                                    <h2>Vigência Atual</h2>
-                                </div>
-                            </div>
-                            <div style="margin-top: 20px; padding: 15px; border-radius: 11px; background: var(--surface-muted);">
-                                <p id="meta-status-vigencia" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.5;"></p>
-                            </div>
-                            <div class="import-warning" style="margin-top: 20px; background: var(--blue-light);">
-                                <svg aria-hidden="true"><use href="#icon-info"></use></svg>
-                                <p style="color: var(--ink);">
-                                    <strong>Metas são por mês.</strong> Use o seletor de mês no topo para configurar meses diferentes. A meta atual vale para o mês exibido no dashboard.
-                                </p>
-                            </div>
-                        </article>
-                    </div>
-
-                    <article class="panel" style="margin-top: 16px; padding: 25px;">
-                        <div class="panel-heading" style="margin-bottom: 10px;">
+                <div class="dashboard-grid">
+                    <!-- Regras do Termômetro -->
+                    <section class="panel">
+                        <form id="termometro-form" style="display: flex; flex-direction: column; gap: 15px; padding: 25px;">
                             <div>
-                                <span class="panel-kicker">Permanente</span>
-                                <h2>Regras do Termômetro</h2>
-                            </div>
-                        </div>
-                        <p style="margin: 0 0 24px; color: var(--ink-soft); font-size: 13px; line-height: 1.6;">
-                            Define quando seu mês fica <strong style="color: var(--green);">Saudável</strong>, em <strong style="color: var(--amber);">Atenção</strong> ou <strong style="color: var(--red);">Crítico</strong>. Estas regras valem para todos os meses.
-                        </p>
-
-                        <form id="termometro-form" style="margin-top: 20px;">
-                            <input id="termometro-id" type="hidden">
-
-                            <div class="system-banner">
-                                <span>✨ Como funcionam as Regras do Termômetro?</span><br>
-                                No futuro, o sistema fará a leitura automática do seu histórico para sugerir essas métricas. Por enquanto, preencha os parâmetros abaixo para o Termômetro saber exatamente quando o seu mês está Saudável ou Crítico.
+                                <h2 class="panel-heading" style="margin-bottom: 6px;">Regras do Termômetro</h2>
+                                <p style="font-size: 13px; color: var(--ink-soft); margin: 0; line-height: 1.5;">Configure os limites globais usados para calcular sua saúde financeira mês a mês.</p>
                             </div>
 
-                            <div class="form-grid">
-                                <label class="field field-wide">
-                                    <span>Reserva de Emergência Intocável</span>
-                                    <div class="money-input">
-                                        <i>R$</i>
-                                        <input id="term-reserva" type="text" required inputmode="decimal" placeholder="24000,00">
-                                    </div>
-                                    <div class="system-hint">
-                                        <strong>Como calcular:</strong>
-                                        O ideal é cobrir 6 meses do custo de vida essencial compartilhado (aluguel, mercado, contas). O sistema vai barrar simulações de compra que usem esse dinheiro.
-                                        <em>Exemplo: R$ 4.000/mês × 6 meses = R$ 24.000,00</em>
-                                    </div>
+                            <input type="hidden" id="termometro-id">
+
+                            <div class="form-grid" style="margin-top: 8px;">
+                                <label class="field">
+                                    <span>Reserva Mínima Intocável</span>
+                                    <div class="money-input"><i>R$</i><input id="term-reserva" required placeholder="0,00"></div>
+                                    <small class="field-hint">Valor que você quer manter sempre na conta, independente de qualquer gasto. Ex: R$ 1.000.</small>
                                 </label>
 
                                 <label class="field">
-                                    <span>Limite de Parcelas e Fixas (%)</span>
-                                    <div class="money-input">
-                                        <input id="term-comprometimento" type="text" required inputmode="decimal" placeholder="30,00">
-                                        <i style="left: auto; right: 12px;">%</i>
-                                    </div>
-                                    <div class="system-hint">
-                                        <strong>Recomendado: 30% a 35%</strong>
-                                        Manter o custo fixo baixo é o segredo para ter caixa livre. Se a renda é R$ 10.000, as fixas e boletos não devem passar de R$ 3.000 para garantir aportes pesados no fim do mês.
-                                    </div>
+                                    <span>Orçamento Diário Mínimo</span>
+                                    <div class="money-input"><i>R$</i><input id="term-diario" required placeholder="0,00"></div>
+                                    <small class="field-hint">O menor valor diário aceitável para seus gastos variáveis. Serve como piso global. Ex: R$ 50.</small>
+                                </label>
+
+                                <label class="field">
+                                    <span>Comprometimento Máx. da Renda (%)</span>
+                                    <input id="term-comprometimento" type="number" required placeholder="Ex: 50">
+                                    <small class="field-hint">Qual % da sua renda pode ser comprometido com saídas fixas. Acima disso o termômetro alerta. Recomendado: 50%.</small>
                                 </label>
 
                                 <label class="field">
                                     <span>Margem de Segurança (%)</span>
-                                    <div class="money-input">
-                                        <input id="term-margem" type="text" required inputmode="decimal" placeholder="5,00">
-                                        <i style="left: auto; right: 12px;">%</i>
-                                    </div>
-                                    <div class="system-hint">
-                                        <strong>Recomendado: 5% a 10%</strong>
-                                        É a "gordura" contra o estresse. O sistema separa essa fatia na conta corrente só para absorver imprevistos (um remédio, um pneu), sem precisar resgatar investimentos.
-                                    </div>
+                                    <input id="term-margem" type="number" required placeholder="Ex: 10">
+                                    <small class="field-hint">Buffer extra aplicado sobre os cálculos para absorver imprevistos. Ex: 10% significa que você guarda 10% a mais.</small>
                                 </label>
 
                                 <label class="field field-wide">
-                                    <span>Estratégia do Termômetro</span>
-                                    <select id="term-estrategia" required style="width: 100%; height: 43px; border: 1px solid var(--line); border-radius: 10px; background: #fff;">
-                                        <option value="CONSERVADORA">Conservadora (Foco em proteção e aportes)</option>
-                                        <option value="MODERADA">Moderada (Equilíbrio entre gastar e guardar)</option>
-                                        <option value="AGRESSIVA">Flexível (Permite gastar mais da margem livre)</option>
-                                        <option value="PERSONALIZADA">Personalizada</option>
+                                    <span>Estratégia Principal</span>
+                                    <select id="term-estrategia">
+                                        <option value="CONSERVADORA">Conservadora — Foco em segurança e reserva</option>
+                                        <option value="MODERADA">Moderada — Equilíbrio entre guardar e gastar</option>
+                                        <option value="AGRESSIVA">Agressiva — Foco em rentabilidade e investimentos</option>
                                     </select>
-                                    <div class="system-hint">
-                                        <strong>Recomendação: Conservadora</strong>
-                                        Excelente para acelerar independência financeira. Ela prioriza proteger sua reserva e bater a meta de investimentos antes de te dar "sinal verde" para gastar com supérfluos.
-                                    </div>
+                                    <small class="field-hint">Define como o termômetro pondera os critérios de avaliação mensal.</small>
                                 </label>
                             </div>
 
-                            <div style="margin-top: 24px;">
-                                <button class="primary-button full-width" type="submit">
-                                    Salvar Regras do Termômetro
-                                </button>
+                            <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                                <button type="submit" class="primary-button">Salvar Regras</button>
                             </div>
                         </form>
-                    </article>
+                    </section>
+
+                    <!-- Meta deste Mês -->
+                    <section class="panel" style="padding: 25px;">
+                        <h2 style="margin: 0 0 6px;">Meta deste Mês</h2>
+                        <p style="font-size: 13px; color: var(--ink-soft); margin: 0 0 20px; line-height: 1.5;">Parâmetros válidos somente para o mês atual. Sobrescrevem as regras globais.</p>
+
+                        <div id="meta-loading" hidden class="loading-panel" style="height: 80px;"><span class="spinner"></span></div>
+
+                        <form id="meta-form">
+                            <input type="hidden" id="meta-id">
+
+                            <div class="form-grid" style="margin-top: 0;">
+                                <label class="field">
+                                    <span>Meta de Investimento (%)</span>
+                                    <input id="meta-percentual" type="number" required placeholder="Ex: 20">
+                                    <small class="field-hint">Quanto da sua renda você quer investir este mês. Ex: 20 = 20% da renda. O padrão global é 20%.</small>
+                                </label>
+
+                                <label class="field">
+                                    <span>Gasto Diário Mínimo Específico</span>
+                                    <div class="money-input"><i>R$</i><input id="meta-diario-minimo" required placeholder="0,00"></div>
+                                    <small class="field-hint">Sobrescreve o orçamento diário global para este mês. Útil em meses com viagens ou despesas extras.</small>
+                                </label>
+
+                                <label class="field field-wide">
+                                    <span>Motivo <small>(opcional)</small></span>
+                                    <input id="meta-motivo" placeholder="Ex: Viagem final do ano, mês com 13º, etc.">
+                                </label>
+                            </div>
+
+                            <small id="meta-status-vigencia" style="display: block; margin-top: 14px; color: var(--ink-soft); font-size: 11px;"></small>
+
+                            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                                <button type="submit" class="secondary-button">Salvar Meta Mensal</button>
+                            </div>
+                        </form>
+
+                        <div class="system-hint" style="margin-top: 20px;">
+                            <strong>Estratégia ativa:</strong> <span id="snapshot-estrategia">—</span>
+                        </div>
+                    </section>
                 </div>
-            </section>
+            </div>
         </div>
     </main>
 </div>
 
+<!-- ═══════════════ DIALOG: LANÇAMENTO ═══════════════ -->
 <dialog id="entry-dialog" class="entry-dialog">
-    <form id="entry-form" method="dialog">
+    <form id="entry-form" method="dialog" x-data="{ recorrente: false }">
         <div class="dialog-heading">
-            <div><p class="eyebrow">Movimentação</p><h2 id="entry-dialog-title">Novo lançamento</h2></div>
-            <button class="icon-button" id="close-entry-dialog" type="button" aria-label="Fechar"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
+            <div>
+                <p class="eyebrow">Movimentação</p>
+                <h2 id="entry-dialog-title">Novo lançamento</h2>
+            </div>
+            <button class="icon-button" id="close-entry-dialog" type="button" aria-label="Fechar">
+                <svg aria-hidden="true"><use href="#icon-close"></use></svg>
+            </button>
         </div>
+
         <input id="entry-id" type="hidden">
 
         <fieldset class="type-selector">
@@ -639,7 +542,51 @@
             <label class="field"><span>Data</span><input id="entry-date" name="data" type="date" required></label>
             <label class="field"><span>Categoria <small>opcional</small></span><input id="entry-category" name="categoria" maxlength="80" placeholder="Ex.: Moradia"></label>
             <label class="field"><span>Mês de referência</span><input id="entry-month" name="mesReferencia" type="month" required></label>
-            <label class="field field-wide"><span>Observação <small>opcional</small></span><textarea id="entry-notes" name="observacao" rows="3" maxlength="500" placeholder="Adicione um contexto para lembrar depois"></textarea></label>
+            <label class="field field-wide"><span>Observação <small>opcional</small></span><textarea id="entry-notes" name="observacao" rows="2" maxlength="500" placeholder="Adicione um contexto para lembrar depois"></textarea></label>
+
+            <!-- Recurring toggle — visual card UX -->
+            <div class="recurring-section">
+                <label class="recurring-toggle-label">
+                    <input type="checkbox" name="recorrente" x-model="recorrente">
+                    <div class="recurring-toggle-ui">
+                        <div class="recurring-icon">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                        </div>
+                        <div>
+                            <strong>Lançamento recorrente</strong>
+                            <small>Repete automaticamente nos próximos meses</small>
+                        </div>
+                        <div class="recurring-switch" aria-hidden="true">
+                            <div class="switch-thumb"></div>
+                        </div>
+                    </div>
+                </label>
+
+                <div x-show="recorrente" x-cloak class="recurring-options">
+                    <label class="field">
+                        <span>Dia preferencial <small>(1–31)</small></span>
+                        <input type="number" name="diaPreferencial" min="1" max="31" value="10">
+                    </label>
+                    <label class="field">
+                        <span>Frequência</span>
+                        <select name="frequencia">
+                            <option value="MENSAL">Mensal</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit scope: only shown when editing a recurring entry -->
+        <div id="escopo-edicao-container" hidden class="edit-scope-group">
+            <label class="field">
+                <span>Escopo da alteração</span>
+                <select name="escopoEdicao" style="width: 100%;">
+                    <option value="ESTE_MES">Somente este mês</option>
+                    <option value="ESTE_E_PROXIMOS">Este e próximos meses</option>
+                </select>
+                <small>⚠ Alterar "Este e próximos meses" pode impactar regras futuras já configuradas.</small>
+            </label>
         </div>
 
         <div class="dialog-actions">
@@ -649,6 +596,7 @@
     </form>
 </dialog>
 
+<!-- ═══════════════ DIALOG: CONFIRMAÇÃO ═══════════════ -->
 <dialog id="confirm-dialog" class="confirm-dialog">
     <form method="dialog">
         <span class="confirm-icon"><svg aria-hidden="true"><use href="#icon-trash"></use></svg></span>
@@ -663,6 +611,7 @@
 
 <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
+<!-- SVG Sprite -->
 <svg class="svg-sprite" aria-hidden="true">
     <symbol id="icon-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></symbol>
     <symbol id="icon-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/></symbol>
@@ -688,7 +637,9 @@
     <symbol id="icon-sliders" viewBox="0 0 24 24"><path d="M4 7h10m4 0h2M4 17h2m4 0h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
     <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L19 9l-4-4L4 16Z"/><path d="m13 7 4 4"/></symbol>
     <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M7 7l1 14h8l1-14m-7-3h4l1 3H9l1-3Z"/></symbol>
+    <symbol id="icon-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2"/></symbol>
 </svg>
+
 <script src="/js/app.js" defer></script>
 <script src="/vendor/alpine-3.15.2.min.js" defer></script>
 </body>

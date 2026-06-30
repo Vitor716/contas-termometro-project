@@ -1,13 +1,12 @@
 
 package br.com.contastermometro.lancamentos.service.impl
 
-import br.com.contastermometro.lancamentos.dto.LancamentoRegistradoEvent
-import br.com.contastermometro.lancamentos.dto.LancamentoRequest
-import br.com.contastermometro.lancamentos.dto.LancamentoResponse
-import br.com.contastermometro.lancamentos.dto.toModel
-import br.com.contastermometro.lancamentos.dto.toResponse
+import br.com.contastermometro.lancamentos.dto.*
+import br.com.contastermometro.lancamentos.enums.EscopoEdicao
+import br.com.contastermometro.lancamentos.model.Lancamento
 import br.com.contastermometro.lancamentos.repository.LancamentoRepository
 import br.com.contastermometro.lancamentos.service.LancamentosService
+import br.com.contastermometro.lancamentos.service.MaterializadorRecorrenciaService
 import br.com.contastermometro.shared.LancamentoNaoEncontradoException
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -16,7 +15,8 @@ import java.time.YearMonth
 @Service
 class LancamentosServiceImpl(
     private val repository: LancamentoRepository,
-    private val eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher,
+    private val materializadorRecorrenciaService: MaterializadorRecorrenciaService
 ) : LancamentosService {
 
     override fun criar(request: LancamentoRequest): LancamentoResponse {
@@ -43,6 +43,9 @@ class LancamentosServiceImpl(
 
     override fun listarPorMes(mesRaw: YearMonth): List<LancamentoResponse> {
         val mes = mesRaw.toString()
+
+        materializadorRecorrenciaService.garantirRecorrenciasMaterializadasNoMes(mes)
+
         val entities = repository.findAllByMesReferenciaAndStatusOrderByDataLancamentoAscIdAsc(mes)
         return entities.map { it.toResponse() }
     }
@@ -58,7 +61,19 @@ class LancamentosServiceImpl(
     }
 
     override fun editar(id: Long, req: LancamentoRequest): LancamentoResponse {
-        val updatedEntity = repository.findById(id).orElseThrow { LancamentoNaoEncontradoException("Lançamento com id $id não encontrado.") }.apply {
+        val existente = repository.findById(id)
+            .orElseThrow { LancamentoNaoEncontradoException("Lançamento $id não encontrado.") }
+
+        if (req.escopoEdicao == EscopoEdicao.ESTE_MES && existente.recorrenciaId != null) {
+            return materializadorRecorrenciaService.editarComoExcecao(existente, req)
+        }
+
+        atualizarCampos(existente, req)
+        return repository.save(existente).toResponse()
+    }
+
+    private fun atualizarCampos(entidade: Lancamento, req: LancamentoRequest) {
+        entidade.apply {
             idLote = req.idLote
             tipo = req.tipo
             descricao = req.descricao
@@ -68,8 +83,5 @@ class LancamentosServiceImpl(
             categoria = req.categoria
             observacao = req.observacao
         }
-
-        val saved = repository.save(updatedEntity)
-        return saved.toResponse()
     }
 }

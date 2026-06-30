@@ -7,6 +7,8 @@ import br.com.contastermometro.configuracao.dto.toResponse
 import br.com.contastermometro.configuracao.repository.MetaMensalRepository
 import br.com.contastermometro.configuracao.service.MetaMensalService
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 @Service
@@ -25,8 +27,14 @@ class MetaMensalServiceImpl (
 
     override fun buscar(mesRaw: YearMonth): MetaMensalResponse {
         val mes = mesRaw.toString()
-        val entity = repository.findByMesReferencia(mes) ?: throw IllegalArgumentException("Meta mensal para o mês $mes não encontrada.")
-        return entity.toResponse()
+        val entity = repository.findByMesReferencia(mes)
+
+        return entity?.toResponse() ?: MetaMensalResponse(
+            mesReferencia = mes,
+            percentualMetaInvestimento = BigDecimal("0.20"),
+            orcamentoDiarioMinimo = BigDecimal.ZERO,
+            vigenteDesde = LocalDateTime.now().toString()
+        )
     }
 
     override fun editar(id: Long, request: MetaMensalRequest): MetaMensalResponse {

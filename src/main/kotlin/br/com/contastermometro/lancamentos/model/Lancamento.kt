@@ -51,6 +51,12 @@ class Lancamento(
     @Column(nullable = false, length = 20)
     var status: StatusLancamento = StatusLancamento.ATIVO,
 
+    @Column(name = "recorrencia_id")
+    var recorrenciaId: Long? = null,
+
+    @Column(name = "recorrencia_excecao", nullable = false)
+    var recorrenciaExcecao: Boolean = false,
+
     @Column(name = "criado_em", nullable = false)
     var criadoEm: String = agora(),
 

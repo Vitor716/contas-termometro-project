@@ -17,4 +17,6 @@ interface LancamentoRepository : JpaRepository<Lancamento, Long> {
     @Modifying
     @Query("DELETE FROM Lancamento l WHERE l.idLote = :idLote")
     fun deleteByIdLoteApenasNoBanco(idLote: String)
+
+    fun existsByRecorrenciaIdAndMesReferencia(recorrenciaId: Long, mesReferencia: String): Boolean
 }

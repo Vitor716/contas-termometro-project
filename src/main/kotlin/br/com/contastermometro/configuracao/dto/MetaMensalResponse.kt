@@ -2,16 +2,17 @@ package br.com.contastermometro.configuracao.dto
 
 import br.com.contastermometro.configuracao.repository.entity.MetaMensalEntity
 import java.math.BigDecimal
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 data class MetaMensalResponse(
-    val id: Long,
+    val id: Long? = null,
     val mesReferencia: String,
-    val percentualMetaInvestimento: BigDecimal,
-    val orcamentoDiarioMinimo: BigDecimal,
-    val motivo: String?,
-    val vigenteDesde: String,
-    val vigenteAte: String?
+    val percentualMetaInvestimento: BigDecimal = BigDecimal("0.20"),
+    val orcamentoDiarioMinimo: BigDecimal = BigDecimal.ZERO,
+    val motivo: String? = "Configuração Padrão",
+    val vigenteDesde: String = LocalDateTime.now().toString(),
+    val vigenteAte: String? = null
 )
 
 fun MetaMensalEntity.toResponse(): MetaMensalResponse {

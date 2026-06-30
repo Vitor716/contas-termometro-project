@@ -11,11 +11,11 @@ const API = {
 const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas"]);
 
 const TYPE_META = {
-    ENTRADA: { label: "Entrada", className: "income", icon: "icon-arrow-down", sign: 1 },
-    SAIDA_FIXA: { label: "Saída fixa", className: "fixed", icon: "icon-home", sign: -1 },
-    GASTO_DIARIO: { label: "Gasto diário", className: "daily", icon: "icon-wallet", sign: -1 },
-    INVESTIMENTO: { label: "Investimento", className: "investment", icon: "icon-leaf", sign: -1 },
-    AJUSTE_SALDO: { label: "Ajuste", className: "adjustment", icon: "icon-sliders", sign: 1 }
+    ENTRADA:     { label: "Entrada",      className: "income",     icon: "icon-arrow-down", sign:  1 },
+    SAIDA_FIXA:  { label: "Saída fixa",   className: "fixed",      icon: "icon-home",       sign: -1 },
+    GASTO_DIARIO:{ label: "Gasto diário", className: "daily",      icon: "icon-wallet",     sign: -1 },
+    INVESTIMENTO:{ label: "Investimento", className: "investment",  icon: "icon-leaf",       sign: -1 },
+    AJUSTE_SALDO:{ label: "Ajuste",       className: "adjustment", icon: "icon-sliders",    sign:  1 }
 };
 
 const state = {
@@ -27,14 +27,16 @@ const state = {
     imports: [],
     selectedFile: null,
     pendingConfirmation: null,
-    activeView: "dashboard"
+    activeView: "dashboard",
+    showOnlyRecurring: false       // ← filtro de recorrentes
 };
 
-const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const moneyFormatter   = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const percentFormatter = new Intl.NumberFormat("pt-BR", { style: "percent", minimumFractionDigits: 0, maximumFractionDigits: 1 });
-const monthFormatter = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
+const monthFormatter   = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
+const dateFormatter    = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
 
+/* ── Alpine Shell ──────────────────────────────────────────── */
 document.addEventListener("alpine:init", () => {
     Alpine.data("appShell", () => ({
         view: "dashboard",
@@ -44,17 +46,13 @@ document.addEventListener("alpine:init", () => {
                 this.view = event.detail.view;
                 this.sidebarOpen = false;
                 if (this.view === "importacao") loadImports();
-                if (this.view === "anual") loadAnnual();
-                if (this.view === "metas") loadMetaDoMes();
+                if (this.view === "anual")      loadAnnual();
+                if (this.view === "metas")      loadMetaDoMes();
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         },
-        navigate(view) {
-            navigate(view);
-        },
-        goBack() {
-            goBack();
-        },
+        navigate(view)              { navigate(view); },
+        goBack()                    { goBack(); },
         showEntries(type, label) {
             window.dispatchEvent(new CustomEvent("app:filter-entries", { detail: { type, label } }));
             this.navigate("lancamentos");
@@ -66,6 +64,7 @@ document.addEventListener("alpine:init", () => {
     }));
 });
 
+/* ── Init ──────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
@@ -86,8 +85,9 @@ function init() {
     loadTermometro();
 }
 
+/* ── Termômetro Config ─────────────────────────────────────── */
 function bindTermometroForm() {
-    byId("termometro-form").addEventListener("submit", salvarTermometro);
+    byId("termometro-form")?.addEventListener("submit", salvarTermometro);
 }
 
 async function loadTermometro() {
@@ -95,19 +95,21 @@ async function loadTermometro() {
         const config = await apiFetch(API.termometro);
         if (config) {
             byId("termometro-id").value = config.id;
-            byId("term-reserva").value = String(config.reservaMinimaIntocavel).replace(".", ",");
+            byId("term-reserva").value        = String(config.reservaMinimaIntocavel).replace(".", ",");
             byId("term-comprometimento").value = String(config.comprometimentoMaximoRenda * 100).replace(".", ",");
-            byId("term-margem").value = String(config.margemSeguranca * 100).replace(".", ",");
-            byId("term-estrategia").value = config.estrategia;
+            byId("term-margem").value          = String(config.margemSeguranca * 100).replace(".", ",");
+            byId("term-estrategia").value      = config.estrategia;
 
-            const diarioMinimoEl = byId("term-diario");
-            if (diarioMinimoEl) {
-                diarioMinimoEl.value = String(config.orcamentoDiarioMinimo).replace(".", ",");
-            }
+            byId("term-diario")?.setAttribute("value",
+                String(config.orcamentoDiarioMinimo).replace(".", ",")
+            );
+            // Set value directly (the field may already exist)
+            const diarioEl = byId("term-diario");
+            if (diarioEl) diarioEl.value = String(config.orcamentoDiarioMinimo).replace(".", ",");
 
             setText("snapshot-estrategia", config.estrategia);
         }
-    } catch (error) {
+    } catch {
         console.warn("Configuração inicial do termômetro não encontrada.");
     }
 }
@@ -115,24 +117,23 @@ async function loadTermometro() {
 async function salvarTermometro(event) {
     event.preventDefault();
     const id = byId("termometro-id").value;
-
-    const diarioMinimoEl = byId("term-diario");
-    const diarioMinimoValor = diarioMinimoEl ? parseMoney(diarioMinimoEl.value) : 0;
+    const diarioEl = byId("term-diario");
+    const diarioValor = diarioEl ? parseMoney(diarioEl.value) : 0;
 
     const payload = {
-        reservaMinimaIntocavel: parseMoney(byId("term-reserva").value),
-        orcamentoDiarioMinimo: diarioMinimoValor,
+        reservaMinimaIntocavel:    parseMoney(byId("term-reserva").value),
+        orcamentoDiarioMinimo:     diarioValor,
         comprometimentoMaximoRenda: parseMoney(byId("term-comprometimento").value) / 100,
-        margemSeguranca: parseMoney(byId("term-margem").value) / 100,
-        estrategia: byId("term-estrategia").value
+        margemSeguranca:           parseMoney(byId("term-margem").value) / 100,
+        estrategia:                byId("term-estrategia").value
     };
 
     const method = id ? "PUT" : "POST";
-    const url = id ? `${API.termometro}/${id}` : API.termometro;
+    const url    = id ? `${API.termometro}/${id}` : API.termometro;
 
     try {
         await apiFetch(url, {
-            method: method,
+            method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
@@ -143,8 +144,9 @@ async function salvarTermometro(event) {
     }
 }
 
+/* ── Meta do Mês ───────────────────────────────────────────── */
 function bindMetaForm() {
-    byId("meta-form").addEventListener("submit", salvarMeta);
+    byId("meta-form")?.addEventListener("submit", salvarMeta);
 }
 
 async function loadMetaDoMes() {
@@ -152,11 +154,10 @@ async function loadMetaDoMes() {
     try {
         const meta = await apiFetch(`${API.metas}?mes=${state.month}`);
         if (meta) {
-            byId("meta-id").value = meta.id;
-
-            byId("meta-percentual").value = (number(meta.percentualMetaInvestimento) * 100).toString().replace(".", ",");
-            byId("meta-diario-minimo").value = number(meta.orcamentoDiarioMinimo).toString().replace(".", ",");
-            byId("meta-motivo").value = meta.motivo || "";
+            byId("meta-id").value             = meta.id;
+            byId("meta-percentual").value     = (number(meta.percentualMetaInvestimento) * 100).toString().replace(".", ",");
+            byId("meta-diario-minimo").value  = number(meta.orcamentoDiarioMinimo).toString().replace(".", ",");
+            byId("meta-motivo").value         = meta.motivo || "";
             setText("meta-status-vigencia", `Meta ativa vigente desde: ${formatarDataIso(meta.vigenteDesde)}`);
         } else {
             limparFormularioMeta();
@@ -172,27 +173,26 @@ async function loadMetaDoMes() {
 }
 
 function limparFormularioMeta() {
-    byId("meta-form").reset();
+    byId("meta-form")?.reset();
     byId("meta-id").value = "";
-    setText("meta-status-vigencia", "Nenhuma meta customizada definida para este mês. Usando padrão (20%).");
+    setText("meta-status-vigencia", "Nenhuma meta customizada definida. Usando padrão (20%).");
 }
 
 function setMetaLoading(loading) {
-    byId("meta-loading").hidden = !loading;
-    byId("meta-content").hidden = loading;
+    const loader  = byId("meta-loading");
+    if (loader) loader.hidden = !loading;
 }
 
 async function salvarMeta(event) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const button = form.querySelector("button[type='submit']");
-    const originalText = button.innerHTML;
+    const form    = event.currentTarget;
+    const button  = form.querySelector("button[type='submit']");
+    const original = button.innerHTML;
+    const id       = byId("meta-id").value;
+    const pctRaw   = parseMoney(byId("meta-percentual").value) / 100;
+    const diarioRaw = parseMoney(byId("meta-diario-minimo").value);
 
-    const id = byId("meta-id").value;
-    const percentualRaw = parseMoney(byId("meta-percentual").value) / 100;
-    const diarioMinimoRaw = parseMoney(byId("meta-diario-minimo").value);
-
-    if (percentualRaw < 0 || percentualRaw > 1) {
+    if (pctRaw < 0 || pctRaw > 1) {
         toast("O percentual deve estar entre 0% e 100%.", "error");
         return;
     }
@@ -201,62 +201,61 @@ async function salvarMeta(event) {
     button.innerHTML = `<span class="spinner"></span> Salvando...`;
 
     const payload = {
-        percentualMetaInvestimento: percentualRaw,
-        orcamentoDiarioMinimo: diarioMinimoRaw,
-        motivo: nullIfBlank(byId("meta-motivo").value)
+        percentualMetaInvestimento: pctRaw,
+        orcamentoDiarioMinimo:      diarioRaw,
+        motivo:                     nullIfBlank(byId("meta-motivo").value)
     };
 
-    const url = id ? `${API.metas}/${id}` : `${API.metas}?mes=${state.month}`;
+    const url    = id ? `${API.metas}/${id}` : `${API.metas}?mes=${state.month}`;
     const method = id ? "PUT" : "POST";
 
     try {
         await apiFetch(url, {
-            method: method,
+            method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
-
         toast(id ? "Meta mensal atualizada com sucesso." : "Meta mensal parametrizada com sucesso.");
-
         await loadMetaDoMes();
         await loadMonth();
     } catch (error) {
         toast(error.message || "Não foi possível salvar a meta.", "error");
     } finally {
-        button.disabled = false;
-        button.innerHTML = originalText;
+        button.disabled  = false;
+        button.innerHTML = original;
     }
 }
 
 function formatarDataIso(isoString) {
     if (!isoString) return "—";
-    const date = new Date(isoString);
-    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date);
+    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" })
+        .format(new Date(isoString));
 }
 
-function normalizeRate(value) {
-    return number(value);
-}
-
+/* ── Annual ────────────────────────────────────────────────── */
 function bindAnnual() {
-    byId("year-picker").value = state.annualYear;
-    byId("annual-year-label").textContent = state.annualYear;
-    byId("year-picker").addEventListener("change", event => {
-        const year = Number(event.target.value);
-        if (!Number.isInteger(year) || year < 2000 || year > 2100) return;
-        state.annualYear = year;
-        byId("annual-year-label").textContent = year;
-        loadAnnual();
-    });
-    byId("previous-year").addEventListener("click", () => changeAnnualYear(-1));
-    byId("next-year").addEventListener("click", () => changeAnnualYear(1));
-    byId("refresh-annual").addEventListener("click", loadAnnual);
+    const yearPicker = byId("year-picker");
+    if (yearPicker) {
+        yearPicker.value = state.annualYear;
+        yearPicker.addEventListener("change", event => {
+            const year = Number(event.target.value);
+            if (!Number.isInteger(year) || year < 2000 || year > 2100) return;
+            state.annualYear = year;
+            setText("annual-year-label", year);
+            loadAnnual();
+        });
+    }
+    setText("annual-year-label", state.annualYear);
+    byId("previous-year")?.addEventListener("click", () => changeAnnualYear(-1));
+    byId("next-year")?.addEventListener("click", () => changeAnnualYear(1));
+    byId("refresh-annual")?.addEventListener("click", loadAnnual);
 }
 
 function changeAnnualYear(offset) {
     state.annualYear += offset;
-    byId("year-picker").value = state.annualYear;
-    byId("annual-year-label").textContent = state.annualYear;
+    const picker = byId("year-picker");
+    if (picker) picker.value = state.annualYear;
+    setText("annual-year-label", state.annualYear);
     loadAnnual();
 }
 
@@ -264,7 +263,6 @@ async function loadAnnual() {
     setAnnualLoading(true);
     try {
         const response = await apiFetch(`${API.annualSummary}?ano=${state.annualYear}`);
-
         state.annualMonths = response.meses || [];
         renderAnnual();
     } catch (error) {
@@ -278,47 +276,46 @@ async function loadAnnual() {
 
 function emptySummary() {
     return {
-        somaEntradas: 0,
-        somaSaidasFixas: 0,
-        totalGastoDiario: 0,
-        totalInvestido: 0,
-        saidaTotal: 0,
-        saldoMes: 0,
-        porcentagemInvestida: 0,
-        metaInvestimento: 0,
-        performanceContraMeta: 0,
-        gastoDiarioEsperadoAtual: 0,
-        gastoDiarioRestante: 0
+        somaEntradas: 0, somaSaidasFixas: 0, totalGastoDiario: 0,
+        totalInvestido: 0, saidaTotal: 0, saldoMes: 0,
+        porcentagemInvestida: 0, metaInvestimento: 0,
+        performanceContraMeta: 0, gastoDiarioEsperadoAtual: 0, gastoDiarioRestante: 0
     };
 }
 
 function setAnnualLoading(loading) {
-    byId("annual-loading").hidden = !loading;
-    byId("annual-content").hidden = loading;
+    const loader = byId("annual-loading");
+    if (loader) loader.hidden = !loading;
+    document.querySelectorAll(".annual-metrics, .annual-grid, .annual-months-panel").forEach(el => {
+        if (el) el.hidden = loading;
+    });
 }
 
 function renderAnnual() {
-    const months = state.annualMonths.length ? state.annualMonths : Array.from({ length: 12 }, (_, index) => ({
-        month: `${state.annualYear}-${String(index + 1).padStart(2, "0")}`,
-        entriesCount: 0,
-        ...emptySummary()
-    }));
-    const total = key => months.reduce((sum, item) => sum + number(item[key]), 0);
-    const income = total("somaEntradas");
-    const out = total("saidaTotal");
-    const invested = total("totalInvestido");
-    const balance = total("saldoMes");
-    const activeMonths = months.filter(item => item.entriesCount > 0).length;
-    const divisor = activeMonths || 12;
+    const months = state.annualMonths.length
+        ? state.annualMonths
+        : Array.from({ length: 12 }, (_, i) => ({
+            month: `${state.annualYear}-${String(i + 1).padStart(2, "0")}`,
+            entriesCount: 0,
+            ...emptySummary()
+        }));
 
-    setText("annual-income", money(income));
-    setText("annual-income-average", `Média mensal: ${money(income / divisor)}`);
-    setText("annual-out", money(out));
-    setText("annual-out-average", `Média mensal: ${money(out / divisor)}`);
-    setText("annual-invested", money(invested));
-    setText("annual-invested-rate", `${percent(income > 0 ? invested / income : 0)} das entradas`);
-    setText("annual-balance", money(balance));
-    setText("annual-active-months", `${activeMonths} ${activeMonths === 1 ? "mês com movimentação" : "meses com movimentação"}`);
+    const total       = key => months.reduce((sum, m) => sum + number(m[key]), 0);
+    const income      = total("somaEntradas");
+    const out         = total("saidaTotal");
+    const invested    = total("totalInvestido");
+    const balance     = total("saldoMes");
+    const activeMonths = months.filter(m => m.entriesCount > 0).length;
+    const divisor     = activeMonths || 12;
+
+    setText("annual-income",          money(income));
+    setText("annual-income-average",  `Média mensal: ${money(income / divisor)}`);
+    setText("annual-out",             money(out));
+    setText("annual-out-average",     `Média mensal: ${money(out / divisor)}`);
+    setText("annual-invested",        money(invested));
+    setText("annual-invested-rate",   `${percent(income > 0 ? invested / income : 0)} das entradas`);
+    setText("annual-balance",         money(balance));
+    setText("annual-active-months",   `${activeMonths} ${activeMonths === 1 ? "mês com movimentação" : "meses com movimentação"}`);
 
     renderAnnualChart(months);
     renderAnnualHighlights(months);
@@ -326,59 +323,50 @@ function renderAnnual() {
 }
 
 function renderAnnualHighlights(months) {
-    const active = months.filter(item => item.entriesCount > 0);
-    const bestIncome = maxMonth(active, "somaEntradas");
-    const bestInvestment = maxMonth(active, "totalInvestido");
-    const highestOut = maxMonth(active, "saidaTotal");
-    setAnnualHighlight("annual-best-income", "annual-best-income-value", bestIncome, "somaEntradas");
-    setAnnualHighlight("annual-best-investment", "annual-best-investment-value", bestInvestment, "totalInvestido");
-    setAnnualHighlight("annual-highest-out", "annual-highest-out-value", highestOut, "saidaTotal");
+    const active = months.filter(m => m.entriesCount > 0);
+    setAnnualHighlight("annual-best-income",      "annual-best-income-value",      maxMonth(active, "somaEntradas"),  "somaEntradas");
+    setAnnualHighlight("annual-best-investment",  "annual-best-investment-value",  maxMonth(active, "totalInvestido"),"totalInvestido");
+    setAnnualHighlight("annual-highest-out",      "annual-highest-out-value",      maxMonth(active, "saidaTotal"),    "saidaTotal");
 }
 
 function renderAnnualChart(months) {
-    const maxValue = Math.max(1, ...months.flatMap(item => [
-        number(item.somaEntradas),
-        number(item.saidaTotal),
-        number(item.totalInvestido)
+    const maxValue = Math.max(1, ...months.flatMap(m => [
+        number(m.somaEntradas), number(m.saidaTotal), number(m.totalInvestido)
     ]));
 
-    byId("annual-chart").innerHTML = months.map(item => {
-        const date = monthToDate(item.month);
-        const label = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(date).replace(".", "");
+    const chartEl = byId("annual-chart");
+    if (!chartEl) return;
 
-        const entradas = number(item.somaEntradas);
-        const saidas = number(item.saidaTotal);
-        const investido = number(item.totalInvestido);
+    chartEl.innerHTML = months.map(m => {
+        const date    = monthToDate(m.month);
+        const label   = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(date).replace(".", "");
+        const entradas = number(m.somaEntradas);
+        const saidas   = number(m.saidaTotal);
+        const investido = number(m.totalInvestido);
 
-        const bars = [
-            ["income", entradas],
-            ["out", saidas],
-            ["investment", investido]
-        ].map(([className, value]) =>
-            `<i class="chart-bar ${className}" style="height:${value > 0 ? Math.max(value / maxValue * 100, 2) : 0}%"></i>`
-        ).join("");
+        const bars = [["income", entradas], ["out", saidas], ["investment", investido]]
+            .map(([cls, val]) =>
+                `<i class="chart-bar ${cls}" style="height:${val > 0 ? Math.max(val / maxValue * 100, 2) : 0}%"></i>`
+            ).join("");
 
         const tooltip = `
             <div class="chart-tooltip">
-                <strong>${monthName(item.month)}</strong>
+                <strong>${monthName(m.month)}</strong>
                 <div class="tooltip-row"><i class="income"></i> Entradas: <span>${money(entradas)}</span></div>
                 <div class="tooltip-row"><i class="out"></i> Saídas: <span>${money(saidas)}</span></div>
                 <div class="tooltip-row"><i class="investment"></i> Investido: <span>${money(investido)}</span></div>
-            </div>
-        `;
+            </div>`;
 
-        return `
-            <div class="chart-month" tabindex="0">
-                ${tooltip}
-                <div class="chart-bars">${bars}</div>
-                <span>${label}</span>
-            </div>
-        `;
+        return `<div class="chart-month" tabindex="0">
+            ${tooltip}
+            <div class="chart-bars">${bars}</div>
+            <span>${label}</span>
+        </div>`;
     }).join("");
 }
 
 function maxMonth(months, key) {
-    return months.reduce((best, item) => !best || number(item[key]) > number(best[key]) ? item : best, null);
+    return months.reduce((best, m) => (!best || number(m[key]) > number(best[key])) ? m : best, null);
 }
 
 function setAnnualHighlight(labelId, valueId, item, key) {
@@ -388,50 +376,72 @@ function setAnnualHighlight(labelId, valueId, item, key) {
 
 function renderAnnualMonths(months) {
     const container = byId("annual-months-grid");
-    container.innerHTML = months.map(item => {
-        const balance = number(item.saldoMes);
-        return `<article class="annual-month-card ${item.entriesCount ? "" : "is-empty"}" role="button" tabindex="0" data-annual-month="${item.month}">
-            <header><strong>${monthName(item.month)}</strong><span>${item.entriesCount} ${item.entriesCount === 1 ? "lançamento" : "lançamentos"}</span></header>
-            <strong class="month-balance ${balance < 0 ? "negative" : ""}">${money(balance)}</strong>
+    if (!container) return;
+
+    container.innerHTML = months.map(m => {
+        const balance   = number(m.saldoMes);
+        const fixedOut  = number(m.somaSaidasFixas);
+
+        // Negative caused mainly by fixed recurring expenses → amber (informative), not red (alarming)
+        const isRecurringNeg = balance < 0 && fixedOut >= Math.abs(balance) * 0.5;
+        const balanceCls     = balance < 0
+            ? (isRecurringNeg ? "recurring-negative" : "negative")
+            : "";
+        const recurNote      = isRecurringNeg
+            ? `<small class="month-recurring-note"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg> inclui recorrentes</small>`
+            : "";
+
+        return `<article class="annual-month-card ${m.entriesCount ? "" : "is-empty"}"
+                         role="button" tabindex="0" data-annual-month="${m.month}">
+            <header>
+                <strong>${monthName(m.month)}</strong>
+                <span>${m.entriesCount} ${m.entriesCount === 1 ? "lançamento" : "lançamentos"}</span>
+            </header>
+            <strong class="month-balance ${balanceCls}">${money(balance)}</strong>
+            ${recurNote}
             <div class="month-summary">
-                <span>Entradas<strong>${money(item.somaEntradas)}</strong></span>
-                <span>Saídas<strong>${money(item.saidaTotal)}</strong></span>
-                <span>Investido<strong>${money(item.totalInvestido)}</strong></span>
-                <span>Gasto diário<strong>${money(item.totalGastoDiario)}</strong></span>
+                <span>Entradas<strong>${money(m.somaEntradas)}</strong></span>
+                <span>Saídas<strong>${money(m.saidaTotal)}</strong></span>
+                <span>Investido<strong>${money(m.totalInvestido)}</strong></span>
+                <span>Gasto diário<strong>${money(m.totalGastoDiario)}</strong></span>
             </div>
         </article>`;
     }).join("");
+
     container.querySelectorAll("[data-annual-month]").forEach(card => {
         const open = () => openAnnualMonth(card.dataset.annualMonth);
         card.addEventListener("click", open);
         card.addEventListener("keydown", event => {
-            if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                open();
-            }
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
         });
     });
 }
 
 function openAnnualMonth(month) {
     state.month = month;
-    byId("month-picker").value = month;
-    byId("entry-type-filter").value = "";
+    const picker = byId("month-picker");
+    if (picker) picker.value = month;
+    const typeFilter = byId("entry-type-filter");
+    if (typeFilter) typeFilter.value = "";
     updateEntryFilterContext("", "");
     updateMonthLabels();
     loadMonth();
     navigate("lancamentos");
 }
 
+/* ── Navigation ────────────────────────────────────────────── */
 function bindNavigation() {
     window.addEventListener("app:filter-entries", event => {
         const { type = "", label = "" } = event.detail || {};
-        byId("entry-type-filter").value = type;
+        const typeFilter = byId("entry-type-filter");
+        if (typeFilter) typeFilter.value = type;
         updateEntryFilterContext(type, label);
         renderEntries();
     });
-    byId("clear-entry-context").addEventListener("click", () => {
-        byId("entry-type-filter").value = "";
+
+    byId("clear-entry-context")?.addEventListener("click", () => {
+        const typeFilter = byId("entry-type-filter");
+        if (typeFilter) typeFilter.value = "";
         updateEntryFilterContext("", "");
         renderEntries();
     });
@@ -464,10 +474,7 @@ function navigate(view, options = {}) {
 }
 
 function goBack() {
-    if (history.state?.previousView) {
-        history.back();
-        return;
-    }
+    if (history.state?.previousView) { history.back(); return; }
     navigate("dashboard");
 }
 
@@ -476,32 +483,35 @@ function viewFromHash() {
     return VIEWS.has(value) ? value : "dashboard";
 }
 
+/* ── Month Controls ────────────────────────────────────────── */
 function bindMonthControls() {
-    byId("month-picker").addEventListener("change", event => {
+    byId("month-picker")?.addEventListener("change", event => {
         if (!event.target.value) return;
         state.month = event.target.value;
         updateMonthLabels();
         loadMonth();
     });
-    byId("previous-month").addEventListener("click", () => changeMonth(-1));
-    byId("next-month").addEventListener("click", () => changeMonth(1));
-    byId("refresh-dashboard").addEventListener("click", loadMonth);
+    byId("previous-month")?.addEventListener("click", () => changeMonth(-1));
+    byId("next-month")?.addEventListener("click",    () => changeMonth(1));
+    byId("refresh-dashboard")?.addEventListener("click", loadMonth);
 }
 
 function changeMonth(offset) {
     const [year, month] = state.month.split("-").map(Number);
     const date = new Date(year, month - 1 + offset, 1);
     state.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    byId("month-picker").value = state.month;
+    const picker = byId("month-picker");
+    if (picker) picker.value = state.month;
     updateMonthLabels();
     loadMonth();
 }
 
 function updateMonthLabels() {
     const date = monthToDate(state.month);
-    byId("dashboard-month-name").textContent = monthFormatter.format(date);
+    setText("dashboard-month-name", monthFormatter.format(date));
 }
 
+/* ── Load Month ────────────────────────────────────────────── */
 async function loadMonth() {
     setDashboardLoading(true);
     try {
@@ -513,7 +523,7 @@ async function loadMonth() {
         state.entries = Array.isArray(entries) ? entries : [];
         renderDashboard();
         renderEntries();
-        await loadSnapshot()
+        await loadSnapshot();
     } catch (error) {
         state.summary = null;
         state.entries = [];
@@ -528,8 +538,8 @@ async function loadMonth() {
 async function loadSnapshot() {
     try {
         const snapshot = await apiFetch(`${API.snapshot}/${state.month}`);
-
         const statusEl = byId("temperature-status");
+        if (!statusEl) return;
         statusEl.className = "status-pill";
 
         if (snapshot.statusAtual === "VERDE") {
@@ -537,8 +547,7 @@ async function loadSnapshot() {
             statusEl.textContent = "Saudável";
             setText("temperature-description", "Seus investimentos e gastos estão dentro do seguro.");
         } else if (snapshot.statusAtual === "AMARELO") {
-            statusEl.style.background = "var(--blue-light)"; // Azul ao invés de amarelo/laranja
-            statusEl.style.color = "var(--blue)";
+            statusEl.classList.add("warning");
             statusEl.textContent = "Aguardando Aporte";
             setText("temperature-description", "Você tem margem no orçamento. Faça seu investimento para bater a meta do mês!");
         } else {
@@ -546,90 +555,147 @@ async function loadSnapshot() {
             statusEl.textContent = "Alerta Crítico";
             setText("temperature-description", "Seu ritmo de gastos comprometeu a sua meta ou seu limite diário.");
         }
-    } catch (e) {
-        // Status permanece como calculado por renderTemperature() a partir do resumo mensal
+    } catch {
+        // Status permanece como calculado por renderTemperature()
     }
 }
 
 function setDashboardLoading(loading) {
-    byId("dashboard-loading").hidden = !loading;
-    byId("dashboard-content").hidden = loading;
+    const loader = byId("dashboard-loading");
+    if (loader) loader.hidden = !loading;
+    document.querySelectorAll("#dashboard-content .metric-grid, #dashboard-content .dashboard-grid, #dashboard-content .recent-panel").forEach(el => {
+        if (el) el.hidden = loading;
+    });
 }
 
+/* ── Render Dashboard ──────────────────────────────────────── */
 function renderDashboard() {
-    const summary = state.summary || {};
-    setText("metric-income", money(summary.somaEntradas));
-    setText("metric-fixed", money(summary.somaSaidasFixas));
-    setText("metric-daily", money(summary.totalGastoDiario));
-    setText("metric-balance", money(summary.saldoMes));
-    const metaValorReais = number(summary.somaEntradas) * normalizeRate(summary.metaInvestimento);
-    setText("thermo-invested", money(summary.totalInvestido));
-    setText("thermo-goal", money(metaValorReais));
-    setText("thermo-total-out", money(summary.saidaTotal));
-    setText("metric-performance", percent(normalizeRate(summary.performanceContraMeta)));
-    setText("metric-daily-remaining", money(summary.gastoDiarioRestante));
-    setText("daily-spent", money(summary.totalGastoDiario));
-    setText("daily-expected", money(summary.gastoDiarioEsperadoAtual));
+    const s = state.summary || {};
 
-    const balance = number(summary.saldoMes);
-    byId("balance-caption").textContent = balance < 0 ? "Seu mês está no negativo" : "Resultado até agora";
+    setText("metric-income",  money(s.somaEntradas));
+    setText("metric-fixed",   money(s.somaSaidasFixas));
+    setText("metric-daily",   money(s.totalGastoDiario));
+    setText("metric-balance", money(s.saldoMes));
 
-    const performance = normalizeRate(summary.performanceContraMeta);
-    renderTemperature(performance, number(summary.somaEntradas) > 0);
+    const metaValorReais = number(s.somaEntradas) * normalizeRate(s.metaInvestimento);
+    setText("thermo-invested",    money(s.totalInvestido));
+    setText("thermo-goal",        money(metaValorReais));
+    setText("thermo-total-out",   money(s.saidaTotal));
+    setText("metric-daily-remaining", money(s.gastoDiarioRestante));
+    setText("daily-spent",    money(s.totalGastoDiario));
+    setText("daily-expected", money(s.gastoDiarioEsperadoAtual));
 
-    const spent = Math.max(0, number(summary.totalGastoDiario));
-    const expected = Math.max(0, number(summary.gastoDiarioEsperadoAtual));
-    const dailyRatio = expected > 0 ? spent / expected : 0;
-    byId("daily-progress").style.width = `${Math.min(dailyRatio * 100, 100)}%`;
-    byId("daily-progress").style.background = dailyRatio > 1 ? "var(--red)" : dailyRatio > .8 ? "var(--amber)" : "var(--green)";
-    byId("daily-progress-label").textContent = expected <= 0
+    // Balance caption
+    const balance = number(s.saldoMes);
+    setText("balance-caption", balance < 0 ? "Seu mês está no negativo" : "Resultado até agora");
+
+    // Temperature gauge
+    const performance = normalizeRate(s.performanceContraMeta);
+    renderTemperature(performance, number(s.somaEntradas) > 0);
+
+    // Daily progress bar
+    const spent    = Math.max(0, number(s.totalGastoDiario));
+    const expected = Math.max(0, number(s.gastoDiarioEsperadoAtual));
+    const ratio    = expected > 0 ? spent / expected : 0;
+
+    const barFill = byId("daily-progress");
+    if (barFill) {
+        barFill.style.width      = `${Math.min(ratio * 100, 100)}%`;
+        barFill.style.background = ratio > 1 ? "var(--red)" : ratio > 0.8 ? "var(--amber)" : "var(--green)";
+    }
+    setText("daily-progress-label", expected <= 0
         ? "Aguardando dados do orçamento"
-        : dailyRatio <= 1
-            ? `${percent(dailyRatio)} do esperado utilizado`
-            : `${percent(dailyRatio - 1)} acima do ritmo esperado`;
+        : ratio <= 1
+            ? `${percent(ratio)} do ritmo esperado utilizado`
+            : `${percent(ratio - 1)} acima do ritmo esperado`
+    );
+
+    // Delta informativo: quanto abaixo/acima do ritmo ideal
+    const deltaEl = byId("daily-delta");
+    if (deltaEl) {
+        if (expected > 0) {
+            const delta = expected - spent;
+            deltaEl.hidden    = false;
+            deltaEl.className = `daily-delta ${delta >= 0 ? "ahead" : "behind"}`;
+            deltaEl.textContent = delta >= 0
+                ? `↓ ${money(delta)} abaixo do ritmo — você está economizando ✓`
+                : `↑ ${money(Math.abs(delta))} acima do ritmo — monitore os gastos`;
+        } else {
+            deltaEl.hidden = true;
+        }
+    }
 
     renderRecentEntries();
 }
 
+/* ── Temperature Gauge (novo design) ──────────────────────── */
 function renderTemperature(performance, hasIncome) {
-    const status = byId("temperature-status");
-    if (!status) return;
-    status.className = "status-pill";
+    const statusEl   = byId("temperature-status");
+    if (!statusEl) return;
+    statusEl.className = "status-pill";
 
-    const fill = byId("thermometer-fill");
+    const fill       = byId("thermometer-fill");
+    const pctDisplay = byId("metric-performance");
 
     if (!hasIncome) {
-        setText("temperature-title", "Comece pelas entradas");
+        setText("temperature-title",       "Comece pelas entradas");
         setText("temperature-description", "Registre uma entrada para o termômetro comparar seus investimentos com a meta mensal.");
-        status.textContent = "Sem dados";
-        if (fill) fill.style.width = "100%";
+        statusEl.textContent = "Sem dados";
+        if (fill) { fill.style.width = "0%"; fill.style.background = "var(--ink-soft)"; }
+        if (pctDisplay) { pctDisplay.textContent = "—"; pctDisplay.className = ""; }
         return;
     }
 
-    const covered = Math.min(Math.max(performance, 0), 1.25);
-    if (fill) fill.style.width = `${100 - Math.min(covered / 1.25 * 100, 100)}%`;
+    // Fill grows left-to-right; cap at 100% visually
+    const pct = Math.min(Math.max(performance, 0), 1) * 100;
+    const fillColor = performance >= 1 ? "var(--green)"
+        : performance >= 0.8 ? "var(--amber)"
+            : "var(--red)";
+
+    if (fill) {
+        fill.style.width      = `${Math.min(pct, 100)}%`;
+        fill.style.background = fillColor;
+        fill.style.boxShadow  = performance >= 1
+            ? "0 0 14px rgba(16,217,160,.35)"
+            : performance >= 0.8
+                ? "0 0 14px rgba(245,166,35,.3)"
+                : "0 0 14px rgba(248,113,113,.25)";
+    }
+
+    if (pctDisplay) {
+        pctDisplay.textContent = `${Math.round(pct)}%`;
+        pctDisplay.className   = performance >= 1 ? "pct-good"
+            : performance >= 0.8 ? "pct-warn"
+                : "pct-danger";
+    }
 
     if (performance >= 1) {
-        status.classList.add("good");
-        status.textContent = "Saudável";
-        setText("temperature-title", "Seu mês está saudável");
+        statusEl.classList.add("good");
+        statusEl.textContent = "Saudável";
+        setText("temperature-title",       "Meta alcançada! 🎯");
         setText("temperature-description", "O investimento planejado foi alcançado. Preserve esse resultado ao tomar novas decisões.");
-    } else if (performance >= .8) {
-        status.classList.add("warning");
-        status.textContent = "Atenção";
-        setText("temperature-title", "Você está perto da meta");
+    } else if (performance >= 0.8) {
+        statusEl.classList.add("warning");
+        statusEl.textContent = "Atenção";
+        setText("temperature-title",       "Você está perto da meta");
         setText("temperature-description", "O ritmo é positivo. Revise os gastos variáveis antes de assumir um novo compromisso.");
     } else {
-        status.classList.add("danger");
-        status.textContent = "Crítico";
-        setText("temperature-title", "Sua meta pede atenção");
+        statusEl.classList.add("danger");
+        statusEl.textContent = "Crítico";
+        setText("temperature-title",       "Meta em risco");
         setText("temperature-description", "O valor investido ainda está abaixo do planejado. Priorize a margem restante do mês.");
     }
 }
 
+/* ── Recent Entries ────────────────────────────────────────── */
 function renderRecentEntries() {
     const container = byId("recent-list");
-    const recent = [...state.entries].sort((a, b) => String(b.data).localeCompare(String(a.data)) || b.id - a.id).slice(0, 4);
+    if (!container) return;
+
+    const recent = [...state.entries]
+        .sort((a, b) => String(b.data).localeCompare(String(a.data)) || b.id - a.id)
+        .slice(0, 5);
+
     if (!recent.length) {
         container.innerHTML = `<div class="empty-state"><p>Nenhuma movimentação registrada neste mês.</p></div>`;
         return;
@@ -638,43 +704,67 @@ function renderRecentEntries() {
         const meta = typeMeta(entry.tipo);
         return `<div class="transaction-row">
             <span class="transaction-symbol ${meta.className}">${icon(meta.icon)}</span>
-            <div class="transaction-copy"><strong>${escapeHtml(entry.descricao)}</strong><small>${formatDate(entry.data)} · ${escapeHtml(entry.categoria || meta.label)}</small></div>
+            <div class="transaction-copy">
+                <strong>${escapeHtml(entry.descricao)}</strong>
+                <small>${formatDate(entry.data)} · ${escapeHtml(entry.categoria || meta.label)}</small>
+            </div>
             <strong class="transaction-amount ${meta.className}">${entrySign(entry)}${money(entry.valor)}</strong>
         </div>`;
     }).join("");
 }
 
+/* ── Entry Filters ─────────────────────────────────────────── */
 function bindEntryFilters() {
-    byId("entry-search").addEventListener("input", renderEntries);
-    byId("entry-type-filter").addEventListener("change", event => {
+    byId("entry-search")?.addEventListener("input", renderEntries);
+
+    byId("entry-type-filter")?.addEventListener("change", event => {
         const type = event.target.value;
         updateEntryFilterContext(type, type ? typeMeta(type).label : "");
+        renderEntries();
+    });
+
+    // Recurring filter toggle
+    byId("recurring-filter-toggle")?.addEventListener("click", event => {
+        state.showOnlyRecurring = !state.showOnlyRecurring;
+        const btn = event.currentTarget;
+        btn.setAttribute("aria-pressed", String(state.showOnlyRecurring));
+        btn.classList.toggle("is-active", state.showOnlyRecurring);
         renderEntries();
     });
 }
 
 function updateEntryFilterContext(type, label) {
     const context = byId("entry-filter-context");
+    if (!context) return;
     context.hidden = !type;
     setText("entry-filter-label", type ? `Exibindo somente ${String(label).toLowerCase()} deste mês.` : "");
     setText("entries-title", type ? label : "Lançamentos do mês");
 }
 
 function renderEntries() {
-    const search = normalizeText(byId("entry-search").value);
-    const type = byId("entry-type-filter").value;
+    const search = normalizeText(byId("entry-search")?.value ?? "");
+    const type   = byId("entry-type-filter")?.value ?? "";
+
     const filtered = [...state.entries]
         .filter(entry => !type || entry.tipo === type)
+        .filter(entry => !state.showOnlyRecurring || (entry.recorrenciaId && !entry.recorrenciaExcecao))
         .filter(entry => !search || normalizeText(`${entry.descricao} ${entry.categoria || ""} ${entry.observacao || ""}`).includes(search))
         .sort((a, b) => String(b.data).localeCompare(String(a.data)) || b.id - a.id);
 
     const tbody = byId("entries-table-body");
     const empty = byId("entries-empty");
+    if (!tbody || !empty) return;
+
     tbody.innerHTML = filtered.map(entry => {
-        const meta = typeMeta(entry.tipo);
+        const meta         = typeMeta(entry.tipo);
+        const isRecorrente = entry.recorrenciaId && !entry.recorrenciaExcecao;
+        const badge        = isRecorrente ? `<span class="badge-recorrente" title="Recorrente">🔄</span>` : "";
         return `<tr>
             <td>${formatDate(entry.data)}</td>
-            <td class="table-description"><strong>${escapeHtml(entry.descricao)}</strong><small>${escapeHtml(entry.observacao || "")}</small></td>
+            <td class="table-description">
+                <strong>${escapeHtml(entry.descricao)}</strong>${badge}
+                <small>${escapeHtml(entry.observacao || "")}</small>
+            </td>
             <td><span class="type-badge ${meta.className}">${meta.label}</span></td>
             <td>${escapeHtml(entry.categoria || "—")}</td>
             <td class="amount-column"><strong class="${meta.className}">${entrySign(entry)}${money(entry.valor)}</strong></td>
@@ -686,92 +776,112 @@ function renderEntries() {
     }).join("");
 
     empty.hidden = filtered.length > 0;
-    document.querySelector(".table-wrap").hidden = filtered.length === 0;
-    const label = filtered.length === 1 ? "1 lançamento" : `${filtered.length} lançamentos`;
-    setText("entry-count", label);
-    const total = filtered.reduce((sum, entry) => sum + number(entry.valor) * typeMeta(entry.tipo).sign, 0);
+    const tableWrap = document.querySelector(".table-wrap");
+    if (tableWrap) tableWrap.hidden = filtered.length === 0;
+
+    setText("entry-count", filtered.length === 1 ? "1 lançamento" : `${filtered.length} lançamentos`);
+    const total = filtered.reduce((sum, e) => sum + number(e.valor) * typeMeta(e.tipo).sign, 0);
     setText("entry-net-total", `Saldo listado: ${money(total)}`);
 
-    tbody.querySelectorAll("[data-edit-entry]").forEach(button => button.addEventListener("click", () => openEntryDialog(Number(button.dataset.editEntry))));
-    tbody.querySelectorAll("[data-delete-entry]").forEach(button => button.addEventListener("click", () => requestEntryDeletion(Number(button.dataset.deleteEntry))));
+    tbody.querySelectorAll("[data-edit-entry]").forEach(btn =>
+        btn.addEventListener("click", () => openEntryDialog(Number(btn.dataset.editEntry)))
+    );
+    tbody.querySelectorAll("[data-delete-entry]").forEach(btn =>
+        btn.addEventListener("click", () => requestEntryDeletion(Number(btn.dataset.deleteEntry)))
+    );
 }
 
+/* ── Entry Form ────────────────────────────────────────────── */
 function bindEntryForm() {
-    ["new-entry-top", "new-entry-page", "new-entry-empty"].forEach(id => byId(id).addEventListener("click", () => openEntryDialog()));
-    byId("close-entry-dialog").addEventListener("click", closeEntryDialog);
-    byId("cancel-entry").addEventListener("click", closeEntryDialog);
-    byId("entry-form").addEventListener("submit", saveEntry);
+    ["new-entry-top", "new-entry-page", "new-entry-empty"].forEach(id =>
+        byId(id)?.addEventListener("click", () => openEntryDialog())
+    );
+    byId("close-entry-dialog")?.addEventListener("click", closeEntryDialog);
+    byId("cancel-entry")?.addEventListener("click", closeEntryDialog);
+    byId("entry-form")?.addEventListener("submit", saveEntry);
 }
 
 function openEntryDialog(id = null) {
-    const form = byId("entry-form");
+    const form          = byId("entry-form");
+    const escopoContainer = byId("escopo-edicao-container");
+    if (!form) return;
+
     form.reset();
-    byId("entry-id").value = "";
+    byId("entry-id").value    = "";
     byId("entry-month").value = state.month;
-    byId("entry-date").value = defaultDateForMonth(state.month);
+    byId("entry-date").value  = defaultDateForMonth(state.month);
     setText("entry-dialog-title", "Novo lançamento");
-    setText("save-entry", "");
-    byId("save-entry").innerHTML = "<span>Salvar lançamento</span>";
+    const saveBtn = byId("save-entry");
+    if (saveBtn) saveBtn.innerHTML = "<span>Salvar lançamento</span>";
 
     if (id !== null) {
-        const entry = state.entries.find(item => item.id === id);
-        if (!entry) return;
-        byId("entry-id").value = entry.id;
-        form.elements.tipo.value = entry.tipo;
-        byId("entry-description").value = entry.descricao;
-        byId("entry-value").value = String(entry.valor).replace(".", ",");
-        byId("entry-date").value = entry.data;
-        byId("entry-category").value = entry.categoria || "";
-        byId("entry-month").value = entry.mesReferencia;
-        byId("entry-notes").value = entry.observacao || "";
-        setText("entry-dialog-title", "Editar lançamento");
-        byId("save-entry").innerHTML = "<span>Salvar alterações</span>";
+        const entry = state.entries.find(e => e.id === id);
+        if (entry) {
+            if (escopoContainer) escopoContainer.hidden = !entry.recorrenciaId;
+            form.elements.tipo.value                   = entry.tipo;
+            byId("entry-description").value            = entry.descricao;
+            byId("entry-value").value                  = String(entry.valor).replace(".", ",");
+            byId("entry-date").value                   = entry.data;
+            byId("entry-category").value               = entry.categoria || "";
+            byId("entry-month").value                  = entry.mesReferencia;
+            byId("entry-notes").value                  = entry.observacao || "";
+            setText("entry-dialog-title", "Editar lançamento");
+            if (saveBtn) saveBtn.innerHTML = "<span>Salvar alterações</span>";
+        } else {
+            if (escopoContainer) escopoContainer.hidden = true;
+        }
+    } else {
+        if (escopoContainer) escopoContainer.hidden = true;
     }
-    byId("entry-dialog").showModal();
-    setTimeout(() => byId("entry-description").focus(), 50);
+
+    byId("entry-dialog")?.showModal();
+    setTimeout(() => byId("entry-description")?.focus(), 50);
 }
 
 function closeEntryDialog() {
-    byId("entry-dialog").close();
+    byId("entry-dialog")?.close();
 }
 
 async function saveEntry(event) {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
-    const id = byId("entry-id").value;
+
+    const id     = byId("entry-id").value;
     const button = byId("save-entry");
     const original = button.innerHTML;
     button.disabled = true;
     button.innerHTML = `<span class="spinner"></span> Salvando`;
 
     const payload = {
-        tipo: form.elements.tipo.value,
-        descricao: byId("entry-description").value.trim(),
-        valor: parseMoney(byId("entry-value").value),
-        data: byId("entry-date").value,
+        tipo:          form.elements.tipo.value,
+        descricao:     byId("entry-description").value.trim(),
+        valor:         parseMoney(byId("entry-value").value),
+        data:          byId("entry-date").value,
         mesReferencia: byId("entry-month").value,
-        categoria: nullIfBlank(byId("entry-category").value),
-        observacao: nullIfBlank(byId("entry-notes").value)
+        categoria:     nullIfBlank(byId("entry-category").value),
+        observacao:    nullIfBlank(byId("entry-notes").value),
+        escopoEdicao:  form.elements.escopoEdicao?.value || null
     };
 
     if (!(payload.valor > 0)) {
         toast("Informe um valor maior que zero.", "error");
-        button.disabled = false;
+        button.disabled  = false;
         button.innerHTML = original;
         return;
     }
 
     try {
         await apiFetch(id ? `${API.entries}/${id}` : API.entries, {
-            method: id ? "PUT" : "POST",
+            method:  id ? "PUT" : "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body:    JSON.stringify(payload)
         });
         closeEntryDialog();
         if (payload.mesReferencia !== state.month) {
             state.month = payload.mesReferencia;
-            byId("month-picker").value = state.month;
+            const picker = byId("month-picker");
+            if (picker) picker.value = state.month;
             updateMonthLabels();
         }
         toast(id ? "Lançamento atualizado." : "Lançamento criado.");
@@ -779,27 +889,28 @@ async function saveEntry(event) {
     } catch (error) {
         toast(error.message || "Não foi possível salvar o lançamento.", "error");
     } finally {
-        button.disabled = false;
+        button.disabled  = false;
         button.innerHTML = original;
     }
 }
 
+/* ── Delete Entry ──────────────────────────────────────────── */
 function requestEntryDeletion(id) {
-    const entry = state.entries.find(item => item.id === id);
+    const entry = state.entries.find(e => e.id === id);
     if (!entry) return;
-    setText("confirm-title", "Excluir lançamento?");
+    setText("confirm-title",   "Excluir lançamento?");
     setText("confirm-message", `"${entry.descricao}" será removido permanentemente.`);
-    setText("confirm-action", "Excluir");
+    setText("confirm-action",  "Excluir");
     state.pendingConfirmation = async () => {
         await apiFetch(`${API.entries}/${id}`, { method: "DELETE" });
         toast("Lançamento excluído.");
         await loadMonth();
     };
-    byId("confirm-dialog").showModal();
+    byId("confirm-dialog")?.showModal();
 }
 
 function bindConfirmation() {
-    byId("confirm-dialog").addEventListener("close", async event => {
+    byId("confirm-dialog")?.addEventListener("close", async event => {
         if (event.target.returnValue !== "confirm" || !state.pendingConfirmation) {
             state.pendingConfirmation = null;
             return;
@@ -814,9 +925,12 @@ function bindConfirmation() {
     });
 }
 
+/* ── Import ────────────────────────────────────────────────── */
 function bindImport() {
     const input = byId("csv-file");
-    const zone = byId("upload-zone");
+    const zone  = byId("upload-zone");
+    if (!input || !zone) return;
+
     input.addEventListener("change", () => selectFile(input.files[0]));
     ["dragenter", "dragover"].forEach(name => zone.addEventListener(name, event => {
         event.preventDefault();
@@ -827,9 +941,9 @@ function bindImport() {
         zone.classList.remove("is-dragging");
     }));
     zone.addEventListener("drop", event => selectFile(event.dataTransfer.files[0]));
-    byId("remove-file").addEventListener("click", () => selectFile(null));
-    byId("upload-button").addEventListener("click", uploadCsv);
-    byId("refresh-imports").addEventListener("click", loadImports);
+    byId("remove-file")?.addEventListener("click", () => selectFile(null));
+    byId("upload-button")?.addEventListener("click", uploadCsv);
+    byId("refresh-imports")?.addEventListener("click", loadImports);
 }
 
 function selectFile(file) {
@@ -838,93 +952,109 @@ function selectFile(file) {
         return;
     }
     state.selectedFile = file || null;
-    byId("upload-zone").hidden = Boolean(file);
-    byId("selected-file").hidden = !file;
-    byId("upload-button").disabled = !file;
+    const uploadZone   = byId("upload-zone");
+    const selectedFile = byId("selected-file");
+    const uploadBtn    = byId("upload-button");
+    if (uploadZone)   uploadZone.hidden   = Boolean(file);
+    if (selectedFile) selectedFile.hidden = !file;
+    if (uploadBtn)    uploadBtn.disabled  = !file;
     if (file) {
         setText("selected-file-name", file.name);
         setText("selected-file-size", formatFileSize(file.size));
     } else {
-        byId("csv-file").value = "";
+        const csvFile = byId("csv-file");
+        if (csvFile) csvFile.value = "";
     }
 }
 
 async function uploadCsv() {
     if (!state.selectedFile) return;
-    const button = byId("upload-button");
+    const button   = byId("upload-button");
     const original = button.innerHTML;
-    button.disabled = true;
+    button.disabled  = true;
     button.innerHTML = `<span class="spinner"></span> Processando arquivo`;
+
     const data = new FormData();
     data.append("file", state.selectedFile);
 
     try {
-        const result = await apiFetch(`${API.imports}/nubank`, { method: "POST", body: data });
+        const result    = await apiFetch(`${API.imports}/nubank`, { method: "POST", body: data });
         const successes = result.sucessos?.length || 0;
-        const failures = result.falhas?.length || 0;
+        const failures  = result.falhas?.length || 0;
         toast(`${successes} lançamento(s) importado(s)${failures ? ` e ${failures} linha(s) rejeitada(s)` : ""}.`);
         selectFile(null);
         await Promise.all([loadImports(), loadMonth()]);
     } catch (error) {
         toast(error.message || "Não foi possível importar o arquivo.", "error");
     } finally {
-        button.disabled = !state.selectedFile;
+        button.disabled  = !state.selectedFile;
         button.innerHTML = original;
     }
 }
 
 async function loadImports() {
     const container = byId("imports-list");
-    container.innerHTML = `<div class="loading-panel"><span class="spinner"></span> Carregando...</div>`;
+    if (container) container.innerHTML = `<div class="loading-panel"><span class="spinner"></span> Carregando...</div>`;
+
     try {
-        const imports = await apiFetch(API.imports);
-        state.imports = Array.isArray(imports) ? imports : [];
+        const imports   = await apiFetch(API.imports);
+        state.imports   = Array.isArray(imports) ? imports : [];
         renderImports();
     } catch (error) {
-        container.innerHTML = `<div class="empty-state"><p>${escapeHtml(error.message || "Não foi possível carregar o histórico.")}</p></div>`;
+        if (container) {
+            container.innerHTML = `<div class="empty-state"><p>${escapeHtml(error.message || "Não foi possível carregar o histórico.")}</p></div>`;
+        }
     }
 }
 
 function renderImports() {
     const container = byId("imports-list");
+    if (!container) return;
+
     if (!state.imports.length) {
         container.innerHTML = `<div class="empty-state"><span>${icon("icon-file")}</span><h3>Nenhuma importação</h3><p>Os lotes enviados aparecerão aqui.</p></div>`;
         return;
     }
     container.innerHTML = [...state.imports].reverse().map(item => `<div class="import-item">
         <span>${icon("icon-file")}</span>
-        <div><strong>${escapeHtml(item.origem)} · ${escapeHtml(item.idLote)}</strong><small>${item.qtdSucessos} importados · ${item.qtdFalhas} falhas · ${item.totalProcessado} linhas</small></div>
+        <div>
+            <strong>${escapeHtml(item.origem)} · ${escapeHtml(item.idLote)}</strong>
+            <small>${item.qtdSucessos} importados · ${item.qtdFalhas} falhas · ${item.totalProcessado} linhas</small>
+        </div>
         <button class="icon-button" type="button" data-delete-import="${escapeHtml(item.idLote)}" aria-label="Excluir lote">${icon("icon-trash")}</button>
     </div>`).join("");
-    container.querySelectorAll("[data-delete-import]").forEach(button => {
-        button.addEventListener("click", () => requestImportDeletion(button.dataset.deleteImport));
-    });
+
+    container.querySelectorAll("[data-delete-import]").forEach(btn =>
+        btn.addEventListener("click", () => requestImportDeletion(btn.dataset.deleteImport))
+    );
 }
 
 function requestImportDeletion(idLote) {
-    setText("confirm-title", "Excluir lote importado?");
+    setText("confirm-title",   "Excluir lote importado?");
     setText("confirm-message", "Todos os lançamentos criados por esta importação também serão removidos.");
-    setText("confirm-action", "Excluir lote");
+    setText("confirm-action",  "Excluir lote");
     state.pendingConfirmation = async () => {
         await apiFetch(`${API.imports}/${encodeURIComponent(idLote)}`, { method: "DELETE" });
         toast("Lote e lançamentos removidos.");
         await Promise.all([loadImports(), loadMonth()]);
     };
-    byId("confirm-dialog").showModal();
+    byId("confirm-dialog")?.showModal();
 }
 
+/* ── Health Check ──────────────────────────────────────────── */
 async function checkHealth() {
     const status = byId("connection-status");
     try {
         await apiFetch("/api/sistema/saude");
-        status.classList.remove("is-offline");
-        status.lastChild.textContent = " Local";
+        status?.classList.remove("is-offline");
+        if (status?.lastChild) status.lastChild.textContent = " Local";
     } catch {
-        status.classList.add("is-offline");
-        status.lastChild.textContent = " Indisponível";
+        status?.classList.add("is-offline");
+        if (status?.lastChild) status.lastChild.textContent = " Indisponível";
     }
 }
 
+/* ── API Fetch ─────────────────────────────────────────────── */
 async function apiFetch(url, options = {}) {
     const response = await fetch(url, options);
     if (response.ok) {
@@ -947,28 +1077,22 @@ async function apiFetch(url, options = {}) {
     throw new Error(message);
 }
 
-function typeMeta(type) {
-    return TYPE_META[type] || TYPE_META.AJUSTE_SALDO;
-}
-
-function entrySign(entry) {
-    return typeMeta(entry.tipo).sign > 0 ? "+ " : "− ";
-}
+/* ── Helpers ───────────────────────────────────────────────── */
+function normalizeRate(value) { return number(value); }
+function typeMeta(type) { return TYPE_META[type] || TYPE_META.AJUSTE_SALDO; }
+function entrySign(entry) { return typeMeta(entry.tipo).sign > 0 ? "+ " : "− "; }
 
 function currentYearMonth() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
-
 function monthToDate(month) {
     const [year, value] = month.split("-").map(Number);
     return new Date(year, value - 1, 1);
 }
-
 function monthName(month) {
     return new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(monthToDate(month));
 }
-
 function defaultDateForMonth(month) {
     const now = new Date();
     if (month === currentYearMonth()) {
@@ -976,77 +1100,56 @@ function defaultDateForMonth(month) {
     }
     return `${month}-01`;
 }
-
 function summaryReferenceDate(month) {
     const [year, value] = month.split("-").map(Number);
-    const now = new Date();
+    const now     = new Date();
     const isCurrent = month === currentYearMonth();
-    const day = isCurrent ? now.getDate() : new Date(year, value, 0).getDate();
+    const day     = isCurrent ? now.getDate() : new Date(year, value, 0).getDate();
     return `${month}-${String(day).padStart(2, "0")}`;
 }
 
-function money(value) {
-    return moneyFormatter.format(number(value));
-}
-
-function percent(value) {
-    return percentFormatter.format(number(value));
-}
-
-function number(value) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-}
+function money(value) { return moneyFormatter.format(number(value)); }
+function percent(value) { return percentFormatter.format(number(value)); }
+function number(value) { const p = Number(value); return Number.isFinite(p) ? p : 0; }
 
 function parseMoney(value) {
     const cleaned = String(value).trim().replace(/\s/g, "").replace(/^R\$/, "");
     if (cleaned.includes(",")) return Number(cleaned.replace(/\./g, "").replace(",", "."));
     return Number(cleaned);
 }
-
 function formatDate(value) {
     if (!value) return "—";
     const [year, month, day] = value.split("-").map(Number);
     return dateFormatter.format(new Date(year, month - 1, day)).replace(".", "");
 }
-
 function formatFileSize(bytes) {
     if (bytes < 1024) return `${bytes} bytes`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1).replace(".", ",")} KB`;
     return `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
 }
-
 function normalizeText(value) {
     return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
-
-function nullIfBlank(value) {
-    const trimmed = value.trim();
-    return trimmed || null;
-}
-
-function icon(id) {
-    return `<svg aria-hidden="true"><use href="#${id}"></use></svg>`;
-}
-
+function nullIfBlank(value) { const t = value.trim(); return t || null; }
+function icon(id) { return `<svg aria-hidden="true"><use href="#${id}"></use></svg>`; }
 function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, character => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-    })[character]);
+    return String(value ?? "").replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[c]
+    );
 }
-
 function toast(message, type = "success") {
-    const element = document.createElement("div");
-    element.className = `toast ${type}`;
-    element.textContent = message;
-    byId("toast-region").appendChild(element);
-    setTimeout(() => element.remove(), 4500);
+    const el = document.createElement("div");
+    el.className   = `toast ${type}`;
+    el.textContent = message;
+    byId("toast-region")?.appendChild(el);
+    setTimeout(() => el.remove(), 4500);
 }
 
-function byId(id) {
-    return document.getElementById(id);
-}
+/** Safe getElementById — returns null instead of throwing */
+function byId(id) { return document.getElementById(id); }
 
+/** Safe setText — no-op if element doesn't exist */
 function setText(id, text) {
-    byId(id).textContent = text;
+    const el = byId(id);
+    if (el) el.textContent = text;
 }

@@ -1,5 +1,6 @@
 package br.com.contastermometro.lancamentos.dto
 
+import br.com.contastermometro.lancamentos.enums.EscopoEdicao
 import br.com.contastermometro.lancamentos.enums.TipoLancamento
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
@@ -29,4 +30,6 @@ data class LancamentoRequest(
     val categoria: String? = null,
 
     val observacao: String? = null,
+
+    val escopoEdicao: EscopoEdicao? = null
 )

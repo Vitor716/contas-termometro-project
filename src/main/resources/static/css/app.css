@@ -856,6 +856,17 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(4px); }
     transition: background .2s ease;
     flex: 0 0 42px;
 }
+
+.recurring-toggle-label input[type="checkbox"]:disabled ~ .recurring-toggle-ui {
+    opacity: 0.65;
+    cursor: default;
+    pointer-events: none;
+}
+
+.recurring-toggle-label input[type="checkbox"]:disabled ~ .recurring-toggle-ui .recurring-switch {
+    background: var(--blue);   /* mantém a cor "ativo" mas sem interação */
+}
+
 .switch-thumb {
     width: 20px; height: 20px;
     background: var(--ink-soft);
@@ -1010,6 +1021,33 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(4px); }
     .year-control { width: 100%; flex-wrap: wrap; }
     .year-control #refresh-annual { margin-left: auto; }
     .annual-months-grid { grid-template-columns: 1fr; }
+
+    /* ── Card-style table for mobile ── */
+    .table-wrap { overflow-x: visible; }
+    .table-wrap table thead { display: none; }
+    .table-wrap table tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        row-gap: 5px;
+        column-gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+    }
+    .table-wrap table td { padding: 0; border: none; }
+    /* Description — col 1, row 1 */
+    .table-wrap table td.table-description { grid-column: 1; grid-row: 1; }
+    .table-wrap table td.table-description strong { max-width: none; white-space: normal; }
+    /* Date — col 1, row 2 */
+    .table-wrap table td[data-label="Data"] { grid-column: 1; grid-row: 2; font-size: 11px; color: var(--ink-soft); }
+    /* Amount — col 2, row 1 */
+    .table-wrap table td.amount-column { grid-column: 2; grid-row: 1; text-align: right; align-self: center; }
+    /* Actions — col 2, row 2 */
+    .table-wrap table td:last-child { grid-column: 2; grid-row: 2; }
+    .table-wrap table td:last-child .table-actions { justify-content: flex-end; }
+    /* Hide Tipo and Categoria on mobile */
+    .table-wrap table td[data-label="Tipo"],
+    .table-wrap table td[data-label="Categoria"] { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }

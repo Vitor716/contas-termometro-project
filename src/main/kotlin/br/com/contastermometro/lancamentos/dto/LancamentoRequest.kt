@@ -31,5 +31,9 @@ data class LancamentoRequest(
 
     val observacao: String? = null,
 
-    val escopoEdicao: EscopoEdicao? = null
+    val escopoEdicao: EscopoEdicao? = null,
+
+    val recorrenciaId: Long? = null,
+
+    val recorrenciaExcecao: Boolean = false,
 )

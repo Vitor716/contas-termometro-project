@@ -41,6 +41,8 @@ fun LancamentoRequest.toModel(): Lancamento {
         mesReferencia = mesReferencia,
         categoria = categoria,
         observacao = observacao,
+        recorrenciaId      = recorrenciaId,
+        recorrenciaExcecao = recorrenciaExcecao,
     )
 }
 

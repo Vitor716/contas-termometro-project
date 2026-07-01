@@ -1,11 +1,12 @@
 const API = {
-    entries: "/api/lancamentos",
-    summary: "/api/orcamentos/mensal",
-    annualSummary: "/api/orcamentos/anual",
-    imports: "/api/importacoes",
-    metas: "/api/configuracao/metas",
-    termometro: "/api/configuracao/termometro",
-    snapshot: "/api/configuracoes/termometros/snapshots"
+    entries:      "/api/lancamentos",
+    recorrencias: "/api/recorrencias",
+    summary:      "/api/orcamentos/mensal",
+    annualSummary:"/api/orcamentos/anual",
+    imports:      "/api/importacoes",
+    metas:        "/api/configuracao/metas",
+    termometro:   "/api/configuracao/termometro",
+    snapshot:     "/api/configuracoes/termometros/snapshots"
 };
 
 const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas"]);
@@ -760,14 +761,14 @@ function renderEntries() {
         const isRecorrente = entry.recorrenciaId && !entry.recorrenciaExcecao;
         const badge        = isRecorrente ? `<span class="badge-recorrente" title="Recorrente">🔄</span>` : "";
         return `<tr>
-            <td>${formatDate(entry.data)}</td>
-            <td class="table-description">
+            <td data-label="Data">${formatDate(entry.data)}</td>
+            <td class="table-description" data-label="Descrição">
                 <strong>${escapeHtml(entry.descricao)}</strong>${badge}
                 <small>${escapeHtml(entry.observacao || "")}</small>
             </td>
-            <td><span class="type-badge ${meta.className}">${meta.label}</span></td>
-            <td>${escapeHtml(entry.categoria || "—")}</td>
-            <td class="amount-column"><strong class="${meta.className}">${entrySign(entry)}${money(entry.valor)}</strong></td>
+            <td data-label="Tipo"><span class="type-badge ${meta.className}">${meta.label}</span></td>
+            <td data-label="Categoria">${escapeHtml(entry.categoria || "—")}</td>
+            <td class="amount-column" data-label="Valor"><strong class="${meta.className}">${entrySign(entry)}${money(entry.valor)}</strong></td>
             <td><div class="table-actions">
                 <button class="icon-button" type="button" data-edit-entry="${entry.id}" aria-label="Editar ${escapeHtml(entry.descricao)}">${icon("icon-edit")}</button>
                 <button class="icon-button delete" type="button" data-delete-entry="${entry.id}" aria-label="Excluir ${escapeHtml(entry.descricao)}">${icon("icon-trash")}</button>
@@ -802,8 +803,9 @@ function bindEntryForm() {
 }
 
 function openEntryDialog(id = null) {
-    const form          = byId("entry-form");
-    const escopoContainer = byId("escopo-edicao-container");
+    const form             = byId("entry-form");
+    const escopoContainer  = byId("escopo-edicao-container");
+    const recurringSection = byId("recurring-section");   // ← declarado antes de qualquer uso
     if (!form) return;
 
     form.reset();
@@ -814,24 +816,46 @@ function openEntryDialog(id = null) {
     const saveBtn = byId("save-entry");
     if (saveBtn) saveBtn.innerHTML = "<span>Salvar lançamento</span>";
 
+    // Sync Alpine checkbox state + garante disabled limpo após reset
+    const recCheck = form.elements.recorrente;
+    if (recCheck) {
+        recCheck.checked  = false;
+        recCheck.disabled = false;
+        recCheck.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
     if (id !== null) {
+        // Edição: oculta seção de criação de recorrência
+        if (recurringSection) recurringSection.hidden = true;
         const entry = state.entries.find(e => e.id === id);
         if (entry) {
             if (escopoContainer) escopoContainer.hidden = !entry.recorrenciaId;
-            form.elements.tipo.value                   = entry.tipo;
-            byId("entry-description").value            = entry.descricao;
-            byId("entry-value").value                  = String(entry.valor).replace(".", ",");
-            byId("entry-date").value                   = entry.data;
-            byId("entry-category").value               = entry.categoria || "";
-            byId("entry-month").value                  = entry.mesReferencia;
-            byId("entry-notes").value                  = entry.observacao || "";
+            form.elements.tipo.value        = entry.tipo;
+            byId("entry-description").value = entry.descricao;
+            byId("entry-value").value       = String(entry.valor).replace(".", ",");
+            byId("entry-date").value        = entry.data;
+            byId("entry-category").value    = entry.categoria || "";
+            byId("entry-month").value       = entry.mesReferencia;
+            byId("entry-notes").value       = entry.observacao || "";
             setText("entry-dialog-title", "Editar lançamento");
             if (saveBtn) saveBtn.innerHTML = "<span>Salvar alterações</span>";
+
+            // Mostra flag de recorrente (read-only) se o lançamento pertence a uma recorrência
+            if (recurringSection && entry.recorrenciaId) {
+                recurringSection.hidden = false;
+                if (recCheck) {
+                    recCheck.checked  = true;
+                    recCheck.disabled = true;   // só leitura — escopo cuida da edição
+                    recCheck.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+            }
         } else {
             if (escopoContainer) escopoContainer.hidden = true;
         }
     } else {
-        if (escopoContainer) escopoContainer.hidden = true;
+        // Novo lançamento: exibe seção de recorrência disponível
+        if (recurringSection) recurringSection.hidden = false;
+        if (escopoContainer)  escopoContainer.hidden  = true;
     }
 
     byId("entry-dialog")?.showModal();
@@ -847,24 +871,16 @@ async function saveEntry(event) {
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
 
-    const id     = byId("entry-id").value;
-    const button = byId("save-entry");
+    const id           = byId("entry-id").value;
+    const isRecorrente = !id && (form.elements.recorrente?.checked ?? false);
+
+    const button   = byId("save-entry");
     const original = button.innerHTML;
     button.disabled = true;
     button.innerHTML = `<span class="spinner"></span> Salvando`;
 
-    const payload = {
-        tipo:          form.elements.tipo.value,
-        descricao:     byId("entry-description").value.trim(),
-        valor:         parseMoney(byId("entry-value").value),
-        data:          byId("entry-date").value,
-        mesReferencia: byId("entry-month").value,
-        categoria:     nullIfBlank(byId("entry-category").value),
-        observacao:    nullIfBlank(byId("entry-notes").value),
-        escopoEdicao:  form.elements.escopoEdicao?.value || null
-    };
-
-    if (!(payload.valor > 0)) {
+    const valorDecimal = parseMoney(byId("entry-value").value);
+    if (!(valorDecimal > 0)) {
         toast("Informe um valor maior que zero.", "error");
         button.disabled  = false;
         button.innerHTML = original;
@@ -872,19 +888,62 @@ async function saveEntry(event) {
     }
 
     try {
+        let recorrenciaId = null;
+
+        // Passo 1 — criar a recorrência e capturar o id gerado
+        if (isRecorrente) {
+            const recorrenciaPayload = {
+                tipo:            form.elements.tipo.value,
+                descricao:       byId("entry-description").value.trim(),
+                valorCentavos:   Math.round(valorDecimal * 100),
+                categoria:       nullIfBlank(byId("entry-category").value),
+                observacao:      nullIfBlank(byId("entry-notes").value),
+                mesInicio:       form.elements.mesInicio?.value || "",
+                mesFim:          nullIfBlank(form.elements.mesFim?.value),
+                diaPreferencial: Number(form.elements.diaPreferencial?.value || 1),
+                frequencia:      form.elements.frequencia?.value  || "MENSAL",
+                status:          form.elements.statusRecorrencia?.value || "ATIVA",
+            };
+
+            const recorrencia = await apiFetch(API.recorrencias, {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify(recorrenciaPayload)
+            });
+
+            recorrenciaId = recorrencia?.id ?? null;
+        }
+
+        // Passo 2 — criar/editar o lançamento, vinculando ao id da recorrência se houver
+        const lancamentoPayload = {
+            tipo:          form.elements.tipo.value,
+            descricao:     byId("entry-description").value.trim(),
+            valor:         valorDecimal,
+            data:          byId("entry-date").value,
+            mesReferencia: byId("entry-month").value,
+            categoria:     nullIfBlank(byId("entry-category").value),
+            observacao:    nullIfBlank(byId("entry-notes").value),
+            escopoEdicao:  form.elements.escopoEdicao?.value || null,
+            recorrenciaId: recorrenciaId,
+        };
+
         await apiFetch(id ? `${API.entries}/${id}` : API.entries, {
             method:  id ? "PUT" : "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify(payload)
+            body:    JSON.stringify(lancamentoPayload)
         });
+
         closeEntryDialog();
-        if (payload.mesReferencia !== state.month) {
-            state.month = payload.mesReferencia;
+        if (lancamentoPayload.mesReferencia !== state.month) {
+            state.month = lancamentoPayload.mesReferencia;
             const picker = byId("month-picker");
             if (picker) picker.value = state.month;
             updateMonthLabels();
         }
-        toast(id ? "Lançamento atualizado." : "Lançamento criado.");
+        const msg = isRecorrente
+            ? "Recorrência e lançamento criados."
+            : id ? "Lançamento atualizado." : "Lançamento criado.";
+        toast(msg);
         await loadMonth();
     } catch (error) {
         toast(error.message || "Não foi possível salvar o lançamento.", "error");

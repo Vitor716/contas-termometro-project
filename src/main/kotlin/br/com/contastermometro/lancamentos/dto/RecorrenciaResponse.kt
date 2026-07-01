@@ -19,7 +19,7 @@ data class RecorrenciaResponse(
 
 fun RecorrenciaLancamento.toResponse(): RecorrenciaResponse {
     return RecorrenciaResponse(
-        id = this.id ?: 0,
+        id = id!!,
         tipo = this.tipo,
         descricao = this.descricao,
         valorCentavos = this.valorCentavos,

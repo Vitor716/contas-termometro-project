@@ -545,7 +545,7 @@
             <label class="field field-wide"><span>Observação <small>opcional</small></span><textarea id="entry-notes" name="observacao" rows="2" maxlength="500" placeholder="Adicione um contexto para lembrar depois"></textarea></label>
 
             <!-- Recurring toggle — visual card UX -->
-            <div class="recurring-section">
+            <div id="recurring-section" class="recurring-section">
                 <label class="recurring-toggle-label">
                     <input type="checkbox" name="recorrente" x-model="recorrente">
                     <div class="recurring-toggle-ui">
@@ -554,7 +554,7 @@
                         </div>
                         <div>
                             <strong>Lançamento recorrente</strong>
-                            <small>Repete automaticamente nos próximos meses</small>
+                            <small>Cria uma recorrência que repete automaticamente</small>
                         </div>
                         <div class="recurring-switch" aria-hidden="true">
                             <div class="switch-thumb"></div>
@@ -564,13 +564,33 @@
 
                 <div x-show="recorrente" x-cloak class="recurring-options">
                     <label class="field">
+                        <span>Mês de início</span>
+                        <input type="month" name="mesInicio" :required="recorrente">
+                    </label>
+                    <label class="field">
+                        <span>Mês de fim <small>opcional</small></span>
+                        <input type="month" name="mesFim">
+                    </label>
+                    <label class="field">
                         <span>Dia preferencial <small>(1–31)</small></span>
-                        <input type="number" name="diaPreferencial" min="1" max="31" value="10">
+                        <input type="number" name="diaPreferencial" min="1" max="31" value="10" :required="recorrente">
                     </label>
                     <label class="field">
                         <span>Frequência</span>
                         <select name="frequencia">
                             <option value="MENSAL">Mensal</option>
+                            <option value="BIMESTRAL">Bimestral</option>
+                            <option value="TRIMESTRAL">Trimestral</option>
+                            <option value="SEMESTRAL">Semestral</option>
+                            <option value="ANUAL">Anual</option>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span>Status</span>
+                        <select name="statusRecorrencia">
+                            <option value="ATIVA">Ativo</option>
+                            <option value="INATIVO">Inativo</option>
+                            <option value="PAUSADO">Pausado</option>
                         </select>
                     </label>
                 </div>

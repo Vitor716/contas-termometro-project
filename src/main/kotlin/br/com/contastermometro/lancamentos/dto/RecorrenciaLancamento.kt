@@ -38,7 +38,7 @@ class RecorrenciaLancamento(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: StatusParcelamento = StatusParcelamento.ATIVA,
+    var status: StatusParcelamento = StatusParcelamento.ATIVO,
 
     var categoria: String? = null,
 
@@ -67,7 +67,7 @@ class RecorrenciaLancamento(
 
         if (this.mesFim != null && mesReferencia > this.mesFim!!) return false
 
-        return this.status == StatusParcelamento.ATIVA
+        return this.status == StatusParcelamento.ATIVO
     }
 
     companion object {

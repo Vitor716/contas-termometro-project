@@ -35,6 +35,18 @@
                 <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
                 Visão anual
             </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'compromissos' }" @click="navigate('compromissos')" type="button">
+                <svg aria-hidden="true"><use href="#icon-calendar"></use></svg>
+                Compromissos
+            </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'projecoes' }" @click="navigate('projecoes')" type="button">
+                <svg aria-hidden="true"><use href="#icon-target"></use></svg>
+                Projecoes
+            </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'consultor' }" @click="navigate('consultor')" type="button">
+                <svg aria-hidden="true"><use href="#icon-spark"></use></svg>
+                Consultor
+            </button>
             <button class="nav-item" :class="{ 'is-active': view === 'importacao' }" @click="navigate('importacao')" type="button">
                 <svg aria-hidden="true"><use href="#icon-upload"></use></svg>
                 Importar CSV
@@ -46,8 +58,8 @@
         </nav>
 
         <div class="sidebar-future">
-            <p>Em breve</p>
-            <span><svg aria-hidden="true"><use href="#icon-spark"></use></svg> Consultor de compra</span>
+            <p>MVP6</p>
+            <span><svg aria-hidden="true"><use href="#icon-spark"></use></svg> Planejamento futuro ativo</span>
         </div>
 
         <div class="privacy-note">
@@ -508,13 +520,251 @@
                     </section>
                 </div>
             </div>
+
+            <!-- ══ Compromissos View ══════════════════════════════════ -->
+            <div id="projecoes-content" class="view" :class="{ 'is-active': view === 'projecoes' }">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">MVP6</p>
+                        <h1>Projecoes <span>Futuras</span></h1>
+                        <p>Compromissos futuros separados do realizado para enxergar renda, parcelas, recorrencias e saldo projetado.</p>
+                    </div>
+                    <div class="page-actions">
+                        <label class="select-field">
+                            <select id="projection-months" aria-label="Quantidade de meses projetados">
+                                <option value="3">3 meses</option>
+                                <option value="6" selected>6 meses</option>
+                                <option value="12">12 meses</option>
+                                <option value="24">24 meses</option>
+                            </select>
+                        </label>
+                        <button class="secondary-button" type="button" id="refresh-projecoes">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg> Atualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="projecoes-loading" hidden class="loading-panel">
+                    <span class="spinner"></span> Calculando projecoes...
+                </div>
+
+                <div class="metric-grid projection-metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Compromisso total futuro</div>
+                        <strong id="projection-total-commitment">R$ 0,00</strong>
+                        <small>Soma do periodo projetado</small>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Media mensal</div>
+                        <strong id="projection-average-commitment">R$ 0,00</strong>
+                        <small>Parcelas + recorrencias</small>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Taxa de comprometimento</div>
+                        <strong id="projection-commitment-rate">0%</strong>
+                        <small>Sobre entradas recorrentes</small>
+                    </div>
+                    <div class="metric-card featured">
+                        <div class="metric-label">Saldo projetado</div>
+                        <strong id="projection-balance">R$ 0,00</strong>
+                        <small>Somente futuro, sem realizado</small>
+                    </div>
+                </div>
+
+                <div id="projecoes-empty" class="empty-state" hidden>
+                    <svg aria-hidden="true"><use href="#icon-target"></use></svg>
+                    <p>Nenhum compromisso futuro encontrado.</p>
+                    <small>Cadastre recorrencias ou parcelamentos para alimentar a projecao.</small>
+                </div>
+                <div id="projecoes-list" class="projection-list"></div>
+            </div>
+
+            <div id="consultor-content" class="view" :class="{ 'is-active': view === 'consultor' }">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">MVP6</p>
+                        <h1>Consultor <span>de Compra</span></h1>
+                        <p>Simula uma nova compra parcelada considerando parcelas e recorrencias ja projetadas no backend.</p>
+                    </div>
+                </div>
+
+                <div class="consultor-grid">
+                    <section class="panel consultor-form-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="panel-kicker">Simulacao</p>
+                                <h2>Nova compra parcelada</h2>
+                            </div>
+                        </div>
+                        <form id="consultor-form" class="form-grid">
+                            <label class="field field-wide">
+                                <span>Descricao</span>
+                                <input id="consultor-descricao" required maxlength="120" placeholder="Ex.: Notebook, curso, viagem">
+                            </label>
+                            <label class="field">
+                                <span>Valor total</span>
+                                <div class="money-input"><i>R$</i><input id="consultor-valor" required inputmode="decimal" placeholder="0,00"></div>
+                            </label>
+                            <label class="field">
+                                <span>Parcelas</span>
+                                <input id="consultor-parcelas" type="number" min="1" max="48" value="6" required>
+                            </label>
+                            <label class="field">
+                                <span>Inicio</span>
+                                <input id="consultor-mes-inicio" type="month" required x-init="$el.value = document.getElementById('month-picker')?.value || ''">
+                            </label>
+                            <div class="field">
+                                <span>&nbsp;</span>
+                                <button id="consultor-submit" type="submit" class="primary-button full-width">
+                                    <span>Simular compra</span>
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section id="consultor-result" class="panel consultor-result" hidden></section>
+                </div>
+            </div>
+
+            <div id="compromissos-content" class="view" :class="{ 'is-active': view === 'compromissos' }">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">Planejamento</p>
+                        <h1>Compromissos</h1>
+                    </div>
+                    <div class="page-actions">
+                        <button class="secondary-button" type="button" id="refresh-compromissos">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg> Atualizar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="comp-tabs" role="tablist">
+                    <button class="comp-tab is-active" data-tab="recorrencias" role="tab" type="button">
+                        <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                        Recorrentes
+                    </button>
+                    <button class="comp-tab" data-tab="parcelamentos" role="tab" type="button">
+                        <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+                        Parcelamentos
+                    </button>
+                </div>
+
+                <!-- Recorrências Panel -->
+                <div class="comp-tab-panel is-active" data-panel="recorrencias">
+                    <div id="recorrencias-loading" class="loading-panel" style="height:160px;">
+                        <span class="spinner"></span>
+                    </div>
+                    <div id="recorrencias-empty" class="empty-state" hidden>
+                        <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                        <p>Nenhuma recorrência ativa neste mês.</p>
+                    </div>
+                    <div id="recorrencias-list"></div>
+                </div>
+
+                <!-- Parcelamentos Panel -->
+                <div class="comp-tab-panel" data-panel="parcelamentos">
+                    <div id="parcelamentos-loading" class="loading-panel" style="height:160px;">
+                        <span class="spinner"></span>
+                    </div>
+                    <div id="parcelamentos-empty" class="empty-state" hidden>
+                        <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+                        <p>Nenhum parcelamento cadastrado.</p>
+                        <small>Crie um lançamento com tipo Gasto Diário e marque como Parcelado.</small>
+                    </div>
+                    <div id="parcelamentos-list"></div>
+                </div>
+            </div>
         </div>
     </main>
+
+    <!-- ══ Recorrência Edit Dialog ════════════════════════════ -->
+    <dialog id="recorrencia-edit-dialog" class="entry-dialog">
+        <form id="recorrencia-edit-form" method="dialog">
+            <div class="dialog-heading">
+                <div>
+                    <p class="eyebrow">Editar</p>
+                    <h2>Recorrência / Parcelamento</h2>
+                </div>
+                <button class="icon-button" id="close-rec-edit-dialog" type="button" aria-label="Fechar">
+                    <svg aria-hidden="true"><use href="#icon-close"></use></svg>
+                </button>
+            </div>
+
+            <input type="hidden" id="rec-edit-id">
+
+            <div class="form-grid">
+                <div class="field field-wide">
+                    <span class="eyebrow" style="font-size:11px;margin-bottom:4px;display:block;">Tipo</span>
+                    <strong id="rec-edit-tipo-label" style="font-size:14px;color:var(--ink-soft);">—</strong>
+                </div>
+
+                <label class="field field-wide">
+                    <span>Descrição</span>
+                    <input id="rec-edit-descricao" required maxlength="120">
+                </label>
+
+                <label class="field">
+                    <span>Valor mensal</span>
+                    <div class="money-input"><i>R$</i><input id="rec-edit-valor" required inputmode="decimal" placeholder="0,00"></div>
+                </label>
+
+                <label class="field">
+                    <span>Dia preferencial <small>(1–31)</small></span>
+                    <input id="rec-edit-dia" type="number" min="1" max="31" required>
+                </label>
+
+                <label class="field">
+                    <span>Mês de início</span>
+                    <input id="rec-edit-mes-inicio" type="month" required>
+                </label>
+
+                <label class="field">
+                    <span>Mês de fim <small>opcional</small></span>
+                    <input id="rec-edit-mes-fim" type="month">
+                </label>
+
+                <label class="field">
+                    <span>Frequência</span>
+                    <select id="rec-edit-frequencia">
+                        <option value="MENSAL">Mensal</option>
+                        <option value="BIMESTRAL">Bimestral</option>
+                        <option value="TRIMESTRAL">Trimestral</option>
+                        <option value="SEMESTRAL">Semestral</option>
+                        <option value="ANUAL">Anual</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <span>Status</span>
+                    <select id="rec-edit-status">
+                        <option value="ATIVO">Ativo</option>
+                        <option value="INATIVO">Inativo</option>
+                        <option value="PAUSADO">Pausado</option>
+                    </select>
+                </label>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;padding:20px 25px 25px;">
+                <button type="button" class="secondary-button" id="close-rec-edit-dialog-foot">Cancelar</button>
+                <button type="submit" class="primary-button" id="rec-edit-save">
+                    <span>Salvar alterações</span>
+                </button>
+            </div>
+        </form>
+    </dialog>
 </div>
 
 <!-- ═══════════════ DIALOG: LANÇAMENTO ═══════════════ -->
 <dialog id="entry-dialog" class="entry-dialog">
-    <form id="entry-form" method="dialog" x-data="{ recorrente: false }">
+    <form id="entry-form" method="dialog"
+          x-data="{
+              recorrente: false,
+              tipo: 'ENTRADA',
+              modoGasto: 'recorrente',
+              get isParcelado() { return this.recorrente && this.tipo === 'GASTO_DIARIO' && this.modoGasto === 'parcelado'; }
+          }">
         <div class="dialog-heading">
             <div>
                 <p class="eyebrow">Movimentação</p>
@@ -527,7 +777,9 @@
 
         <input id="entry-id" type="hidden">
 
-        <fieldset class="type-selector">
+        <!-- @change atualiza o estado Alpine do tipo e reseta o modo -->
+        <fieldset class="type-selector"
+                  @change="tipo = $event.target.value; modoGasto = 'recorrente'">
             <legend>Que tipo de lançamento é este?</legend>
             <label><input type="radio" name="tipo" value="ENTRADA" checked><span class="type-option income"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg>Entrada</span></label>
             <label><input type="radio" name="tipo" value="SAIDA_FIXA"><span class="type-option fixed"><svg aria-hidden="true"><use href="#icon-home"></use></svg>Saída fixa</span></label>
@@ -540,11 +792,15 @@
             <label class="field field-wide"><span>Descrição</span><input id="entry-description" name="descricao" required maxlength="120" placeholder="Ex.: Salário, aluguel, mercado"></label>
             <label class="field"><span>Valor</span><div class="money-input"><i>R$</i><input id="entry-value" name="valor" required inputmode="decimal" placeholder="0,00"></div></label>
             <label class="field"><span>Data</span><input id="entry-date" name="data" type="date" required></label>
-            <label class="field"><span>Categoria <small>opcional</small></span><input id="entry-category" name="categoria" maxlength="80" placeholder="Ex.: Moradia"></label>
+            <!-- Categoria oculta automaticamente quando for parcelamento -->
+            <label class="field" x-show="!isParcelado">
+                <span>Categoria <small>opcional</small></span>
+                <input id="entry-category" name="categoria" maxlength="80" placeholder="Ex.: Moradia">
+            </label>
             <label class="field"><span>Mês de referência</span><input id="entry-month" name="mesReferencia" type="month" required></label>
             <label class="field field-wide"><span>Observação <small>opcional</small></span><textarea id="entry-notes" name="observacao" rows="2" maxlength="500" placeholder="Adicione um contexto para lembrar depois"></textarea></label>
 
-            <!-- Recurring toggle — visual card UX -->
+            <!-- Recurring toggle — adapta descrição pelo tipo -->
             <div id="recurring-section" class="recurring-section">
                 <label class="recurring-toggle-label">
                     <input type="checkbox" name="recorrente" x-model="recorrente">
@@ -553,8 +809,8 @@
                             <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
                         </div>
                         <div>
-                            <strong>Lançamento recorrente</strong>
-                            <small>Cria uma recorrência que repete automaticamente</small>
+                            <strong x-text="tipo === 'GASTO_DIARIO' ? 'Recorrente ou parcelado' : 'Lançamento recorrente'"></strong>
+                            <small x-text="tipo === 'GASTO_DIARIO' ? 'Define um padrão que se repete ou um parcelamento fixo' : 'Cria uma recorrência que repete automaticamente'"></small>
                         </div>
                         <div class="recurring-switch" aria-hidden="true">
                             <div class="switch-thumb"></div>
@@ -563,19 +819,39 @@
                 </label>
 
                 <div x-show="recorrente" x-cloak class="recurring-options">
+
+                    <!-- Seletor de modo: só aparece para GASTO_DIARIO -->
+                    <div class="modo-recorrente-selector" x-show="tipo === 'GASTO_DIARIO'">
+                        <label :class="{ 'is-active': modoGasto === 'recorrente' }">
+                            <input type="radio" name="modoRecorrente" value="recorrente" x-model="modoGasto">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                            <span>Recorrente</span>
+                        </label>
+                        <label :class="{ 'is-active': modoGasto === 'parcelado' }">
+                            <input type="radio" name="modoRecorrente" value="parcelado" x-model="modoGasto">
+                            <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+                            <span>Parcelado</span>
+                        </label>
+                    </div>
+
                     <label class="field">
                         <span>Mês de início</span>
                         <input type="month" name="mesInicio" :required="recorrente">
                     </label>
                     <label class="field">
-                        <span>Mês de fim <small>opcional</small></span>
-                        <input type="month" name="mesFim">
+                        <span>
+                            Mês de fim
+                            <small x-show="!isParcelado">opcional</small>
+                            <small x-show="isParcelado" class="required-hint">obrigatório</small>
+                        </span>
+                        <input type="month" name="mesFim" :required="isParcelado">
                     </label>
                     <label class="field">
                         <span>Dia preferencial <small>(1–31)</small></span>
                         <input type="number" name="diaPreferencial" min="1" max="31" value="10" :required="recorrente">
                     </label>
-                    <label class="field">
+                    <!-- Frequência: oculta para parcelado (sempre MENSAL) -->
+                    <label class="field" x-show="!isParcelado">
                         <span>Frequência</span>
                         <select name="frequencia">
                             <option value="MENSAL">Mensal</option>
@@ -585,10 +861,11 @@
                             <option value="ANUAL">Anual</option>
                         </select>
                     </label>
-                    <label class="field">
+                    <!-- Status: oculto para parcelado (sempre ATIVO) -->
+                    <label class="field" x-show="!isParcelado">
                         <span>Status</span>
                         <select name="statusRecorrencia">
-                            <option value="ATIVA">Ativo</option>
+                            <option value="ATIVO">Ativo</option>
                             <option value="INATIVO">Inativo</option>
                             <option value="PAUSADO">Pausado</option>
                         </select>
@@ -658,6 +935,7 @@
     <symbol id="icon-edit" viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L19 9l-4-4L4 16Z"/><path d="m13 7 4 4"/></symbol>
     <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16m-10 4v6m4-6v6M7 7l1 14h8l1-14m-7-3h4l1 3H9l1-3Z"/></symbol>
     <symbol id="icon-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2"/></symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24"><path d="M2 8l10 5 10-5L12 3 2 8Z"/><path d="M2 13l10 5 10-5"/><path d="M2 18l10 5 10-5"/></symbol>
 </svg>
 
 <script src="/js/app.js" defer></script>

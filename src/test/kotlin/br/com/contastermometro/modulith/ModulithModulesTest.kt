@@ -14,7 +14,9 @@ class ModulithModulesTest {
 
         val violations = modules.detectViolations()
 
-        assertThat(violations.hasViolations()).isFalse
+        assertThat(violations.hasViolations())
+            .withFailMessage(violations.messages.joinToString(System.lineSeparator()))
+            .isFalse
     }
 
     @Test

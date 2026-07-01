@@ -6,10 +6,12 @@ const API = {
     imports:      "/api/importacoes",
     metas:        "/api/configuracao/metas",
     termometro:   "/api/configuracao/termometro",
-    snapshot:     "/api/configuracoes/termometros/snapshots"
+    snapshot:     "/api/configuracoes/termometros/snapshots",
+    projecoes:    "/api/projecoes",
+    consultor:    "/api/consultor"
 };
 
-const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas"]);
+const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas", "compromissos", "projecoes", "consultor"]);
 
 const TYPE_META = {
     ENTRADA:     { label: "Entrada",      className: "income",     icon: "icon-arrow-down", sign:  1 },
@@ -26,10 +28,14 @@ const state = {
     summary: null,
     annualMonths: [],
     imports: [],
+    recorrencias: [],
+    parcelamentos: [],
+    projecoes: [],
+    consultorResultado: null,
     selectedFile: null,
     pendingConfirmation: null,
     activeView: "dashboard",
-    showOnlyRecurring: false       // ← filtro de recorrentes
+    showOnlyRecurring: false
 };
 
 const moneyFormatter   = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -46,9 +52,12 @@ document.addEventListener("alpine:init", () => {
             window.addEventListener("app:navigate", event => {
                 this.view = event.detail.view;
                 this.sidebarOpen = false;
-                if (this.view === "importacao") loadImports();
-                if (this.view === "anual")      loadAnnual();
-                if (this.view === "metas")      loadMetaDoMes();
+                if (this.view === "importacao")    loadImports();
+                if (this.view === "anual")          loadAnnual();
+                if (this.view === "metas")          loadMetaDoMes();
+                if (this.view === "compromissos")   loadCompromissos();
+                if (this.view === "projecoes")      loadProjecoes();
+                if (this.view === "consultor")      syncConsultorMonth();
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         },
@@ -79,11 +88,40 @@ function init() {
     bindAnnual();
     bindConfirmation();
     bindMetaForm();
+    bindCompromissos();
+    bindMvp6();
     updateMonthLabels();
     loadMonth();
     checkHealth();
     bindTermometroForm();
     loadTermometro();
+}
+
+/* ── Bind Compromissos Shell ───────────────────────────────── */
+function bindCompromissos() {
+    document.querySelectorAll(".comp-tab").forEach(btn =>
+        btn.addEventListener("click", () => switchCompromissosTab(btn.dataset.tab))
+    );
+    byId("recorrencia-edit-form")?.addEventListener("submit", saveRecorrenciaEdit);
+    byId("close-rec-edit-dialog")?.addEventListener("click", () =>
+        byId("recorrencia-edit-dialog")?.close()
+    );
+    byId("close-rec-edit-dialog-foot")?.addEventListener("click", () =>
+        byId("recorrencia-edit-dialog")?.close()
+    );
+    byId("refresh-compromissos")?.addEventListener("click", loadCompromissos);
+}
+
+function bindMvp6() {
+    byId("refresh-projecoes")?.addEventListener("click", loadProjecoes);
+    byId("projection-months")?.addEventListener("change", loadProjecoes);
+    byId("consultor-form")?.addEventListener("submit", simularCompra);
+    syncConsultorMonth();
+}
+
+function syncConsultorMonth() {
+    const field = byId("consultor-mes-inicio");
+    if (field && !field.value) field.value = state.month;
 }
 
 /* ── Termômetro Config ─────────────────────────────────────── */
@@ -831,6 +869,9 @@ function openEntryDialog(id = null) {
         if (entry) {
             if (escopoContainer) escopoContainer.hidden = !entry.recorrenciaId;
             form.elements.tipo.value        = entry.tipo;
+            // Sync Alpine's `tipo` state via the fieldset @change listener
+            form.querySelector(`input[name="tipo"][value="${entry.tipo}"]`)
+                ?.dispatchEvent(new Event("change", { bubbles: true }));
             byId("entry-description").value = entry.descricao;
             byId("entry-value").value       = String(entry.valor).replace(".", ",");
             byId("entry-date").value        = entry.data;
@@ -873,6 +914,10 @@ async function saveEntry(event) {
 
     const id           = byId("entry-id").value;
     const isRecorrente = !id && (form.elements.recorrente?.checked ?? false);
+    const tipo         = form.elements.tipo.value;
+    const isParcelado  = isRecorrente
+        && tipo === "GASTO_DIARIO"
+        && form.elements.modoRecorrente?.value === "parcelado";
 
     const button   = byId("save-entry");
     const original = button.innerHTML;
@@ -893,16 +938,16 @@ async function saveEntry(event) {
         // Passo 1 — criar a recorrência e capturar o id gerado
         if (isRecorrente) {
             const recorrenciaPayload = {
-                tipo:            form.elements.tipo.value,
+                tipo:            tipo,
                 descricao:       byId("entry-description").value.trim(),
                 valorCentavos:   Math.round(valorDecimal * 100),
-                categoria:       nullIfBlank(byId("entry-category").value),
+                categoria:       isParcelado ? "PARCELAMENTO" : nullIfBlank(byId("entry-category").value),
                 observacao:      nullIfBlank(byId("entry-notes").value),
                 mesInicio:       form.elements.mesInicio?.value || "",
                 mesFim:          nullIfBlank(form.elements.mesFim?.value),
                 diaPreferencial: Number(form.elements.diaPreferencial?.value || 1),
-                frequencia:      form.elements.frequencia?.value  || "MENSAL",
-                status:          form.elements.statusRecorrencia?.value || "ATIVA",
+                frequencia:      isParcelado ? "MENSAL" : (form.elements.frequencia?.value  || "MENSAL"),
+                status:          isParcelado ? "ATIVO"  : (form.elements.statusRecorrencia?.value || "ATIVO"),
             };
 
             const recorrencia = await apiFetch(API.recorrencias, {
@@ -916,12 +961,12 @@ async function saveEntry(event) {
 
         // Passo 2 — criar/editar o lançamento, vinculando ao id da recorrência se houver
         const lancamentoPayload = {
-            tipo:          form.elements.tipo.value,
+            tipo:          tipo,
             descricao:     byId("entry-description").value.trim(),
             valor:         valorDecimal,
             data:          byId("entry-date").value,
             mesReferencia: byId("entry-month").value,
-            categoria:     nullIfBlank(byId("entry-category").value),
+            categoria:     isParcelado ? "PARCELAMENTO" : nullIfBlank(byId("entry-category").value),
             observacao:    nullIfBlank(byId("entry-notes").value),
             escopoEdicao:  form.elements.escopoEdicao?.value || null,
             recorrenciaId: recorrenciaId,
@@ -940,9 +985,11 @@ async function saveEntry(event) {
             if (picker) picker.value = state.month;
             updateMonthLabels();
         }
-        const msg = isRecorrente
-            ? "Recorrência e lançamento criados."
-            : id ? "Lançamento atualizado." : "Lançamento criado.";
+        const msg = isParcelado
+            ? "Parcelamento e lançamento criados."
+            : isRecorrente
+                ? "Recorrência e lançamento criados."
+                : id ? "Lançamento atualizado." : "Lançamento criado.";
         toast(msg);
         await loadMonth();
     } catch (error) {
@@ -1136,6 +1183,492 @@ async function apiFetch(url, options = {}) {
     throw new Error(message);
 }
 
+/* ── Compromissos (Recorrências + Parcelamentos) ───────────── */
+
+/* MVP6: projecoes futuras e consultor */
+
+async function loadProjecoes() {
+    const meses = Math.max(1, Math.min(24, Number(byId("projection-months")?.value || 6)));
+    const inicio = addMonths(state.month, 1);
+
+    setProjectionLoading(true);
+    try {
+        const data = await apiFetch(`${API.projecoes}/mensal?mesInicio=${inicio}&meses=${meses}`);
+        state.projecoes = Array.isArray(data) ? data : [];
+        renderProjecoes();
+    } catch (error) {
+        state.projecoes = [];
+        renderProjecoes();
+        toast(error.message || "Nao foi possivel carregar projecoes.", "error");
+    } finally {
+        setProjectionLoading(false);
+    }
+}
+
+function setProjectionLoading(loading) {
+    const loader = byId("projecoes-loading");
+    if (loader) loader.hidden = !loading;
+}
+
+function renderProjecoes() {
+    const list = byId("projecoes-list");
+    const empty = byId("projecoes-empty");
+    if (!list) return;
+
+    if (!state.projecoes.length) {
+        list.innerHTML = "";
+        if (empty) empty.hidden = false;
+        updateProjectionTotals([]);
+        return;
+    }
+
+    if (empty) empty.hidden = true;
+    updateProjectionTotals(state.projecoes);
+
+    const maxTotal = Math.max(1, ...state.projecoes.map(p => number(p.totalCompromissos)));
+    list.innerHTML = state.projecoes.map(p => {
+        const comprometimento = p.entradasRecorrentes > 0 ? p.totalCompromissos / p.entradasRecorrentes : 0;
+        const barWidth = Math.min(100, (number(p.totalCompromissos) / maxTotal) * 100);
+        const riskClass = p.saldoProjectado < 0 ? "danger" : comprometimento >= 0.85 ? "warning" : "good";
+        return `
+        <article class="projection-card ${riskClass}">
+            <header>
+                <div>
+                    <strong>${monthName(p.mes)}</strong>
+                    <span>Futuro separado do realizado</span>
+                </div>
+                <b>${money(p.saldoProjectado / 100)}</b>
+            </header>
+            <div class="projection-bar"><span style="width:${barWidth}%"></span></div>
+            <div class="projection-breakdown">
+                <span>Entradas recorrentes<strong>${money(p.entradasRecorrentes / 100)}</strong></span>
+                <span>Saidas fixas<strong>${money(p.saidasFixas / 100)}</strong></span>
+                <span>Parcelamentos<strong>${money(p.parcelamentos / 100)}</strong></span>
+                <span>Outros recorrentes<strong>${money(p.outrosGastosRecorrentes / 100)}</strong></span>
+                <span>Comprometimento<strong>${percent(comprometimento)}</strong></span>
+            </div>
+        </article>`;
+    }).join("");
+}
+
+function updateProjectionTotals(items) {
+    const total = key => items.reduce((sum, item) => sum + number(item[key]), 0);
+    const entradas = total("entradasRecorrentes");
+    const compromissos = total("totalCompromissos");
+    const saldo = total("saldoProjectado");
+    setText("projection-total-commitment", money(compromissos / 100));
+    setText("projection-average-commitment", money(items.length ? compromissos / items.length / 100 : 0));
+    setText("projection-balance", money(saldo / 100));
+    setText("projection-commitment-rate", entradas > 0 ? percent(compromissos / entradas) : "0%");
+}
+
+async function simularCompra(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+
+    const button = byId("consultor-submit");
+    const original = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner"></span> Simulando`;
+
+    const payload = {
+        descricao: byId("consultor-descricao").value.trim(),
+        valorTotalCentavos: Math.round(parseMoney(byId("consultor-valor").value) * 100),
+        numeroParcelas: Number(byId("consultor-parcelas").value),
+        mesInicio: byId("consultor-mes-inicio").value
+    };
+
+    try {
+        state.consultorResultado = await apiFetch(`${API.consultor}/simular-compra`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        renderConsultorResultado();
+    } catch (error) {
+        state.consultorResultado = null;
+        renderConsultorResultado();
+        toast(error.message || "Nao foi possivel simular a compra.", "error");
+    } finally {
+        button.disabled = false;
+        button.innerHTML = original;
+    }
+}
+
+function renderConsultorResultado() {
+    const panel = byId("consultor-result");
+    const result = state.consultorResultado;
+    if (!panel) return;
+    if (!result) {
+        panel.hidden = true;
+        panel.innerHTML = "";
+        return;
+    }
+
+    const cls = {
+        VIAVEL: "good",
+        ARRISCADO: "warning",
+        NAO_RECOMENDADO: "danger"
+    }[result.recomendacao] || "warning";
+
+    const criticos = result.mesesCriticos || [];
+    panel.hidden = false;
+    panel.className = `panel consultor-result ${cls}`;
+    panel.innerHTML = `
+        <div class="panel-heading">
+            <div>
+                <p class="panel-kicker">Resultado</p>
+                <h2>${formatRecommendation(result.recomendacao)}</h2>
+            </div>
+            <span class="status-pill ${cls}">${criticos.length} mes(es) critico(s)</span>
+        </div>
+        <p>${escapeHtml(result.motivacao)}</p>
+        <div class="consultor-metrics">
+            <span>Parcela<strong>${money(result.valorParcelaCentavos / 100)}</strong></span>
+            <span>Media atual<strong>${money(result.comprometimentoMedioAtualCentavos / 100)}</strong></span>
+            <span>Media com compra<strong>${money(result.comprometimentoMedioComCompraCentavos / 100)}</strong></span>
+        </div>
+        ${criticos.length ? `<div class="critical-months">${criticos.map(m => `
+            <div>
+                <strong>${monthName(m.mes)}</strong>
+                <span>Compromisso: ${money(m.comprometimentoComCompraCentavos / 100)} - saldo: ${money(m.saldoComCompraCentavos / 100)}</span>
+            </div>
+        `).join("")}</div>` : ""}`;
+}
+
+function formatRecommendation(value) {
+    return {
+        VIAVEL: "Compra viavel",
+        ARRISCADO: "Compra arriscada",
+        NAO_RECOMENDADO: "Nao recomendado"
+    }[value] || value;
+}
+
+async function loadCompromissos() {
+    ["recorrencias", "parcelamentos"].forEach(id => {
+        byId(`${id}-loading`).hidden  = false;
+        byId(`${id}-list`).innerHTML  = "";
+        const empty = byId(`${id}-empty`);
+        if (empty) empty.hidden = true;
+    });
+
+    try {
+        const [recorrencias, parcelamentos] = await Promise.all([
+            apiFetch(`${API.recorrencias}/mensal?mes=${state.month}`),
+            apiFetch(`${API.recorrencias}/parcelamentos?categoria=PARCELAMENTO`)
+        ]);
+        state.recorrencias  = recorrencias  || [];
+        state.parcelamentos = parcelamentos || [];
+        renderRecorrencias(state.recorrencias);
+        renderParcelamentos(state.parcelamentos);
+    } catch (error) {
+        toast(error.message || "Erro ao carregar compromissos.", "error");
+        byId("recorrencias-loading").hidden  = true;
+        byId("parcelamentos-loading").hidden = true;
+    }
+}
+
+function renderRecorrencias(list) {
+    byId("recorrencias-loading").hidden = true;
+    const container = byId("recorrencias-list");
+    const empty     = byId("recorrencias-empty");
+    if (!container) return;
+
+    if (list.length === 0) {
+        if (empty) empty.hidden = false;
+        return;
+    }
+    if (empty) empty.hidden = true;
+
+    const typeOrder  = ["ENTRADA", "SAIDA_FIXA", "GASTO_DIARIO"];
+    const typeLabels = { ENTRADA: "Entradas recorrentes", SAIDA_FIXA: "Saídas fixas", GASTO_DIARIO: "Gastos recorrentes" };
+    const freqLabel  = { MENSAL: "mensal", BIMESTRAL: "bimestral", TRIMESTRAL: "trimestral", SEMESTRAL: "semestral", ANUAL: "anual" };
+
+    const groups = {};
+    list.forEach(r => { (groups[r.tipo] = groups[r.tipo] || []).push(r); });
+
+    container.innerHTML = typeOrder
+        .filter(t => groups[t])
+        .map(tipo => {
+            const meta = typeMeta(tipo);
+            return `
+            <div class="comp-group">
+                <h3 class="comp-group-title">
+                    <span class="comp-group-dot ${meta.className}"></span>
+                    ${typeLabels[tipo] || tipo}
+                    <span class="comp-group-count">${groups[tipo].length}</span>
+                </h3>
+                ${groups[tipo].map(r => {
+                const inicio = formatYearMonth(r.mesInicio);
+                const fim    = r.mesFim ? formatYearMonth(r.mesFim) : "sem data de fim";
+                const valor  = money(r.valorCentavos / 100);
+                return `
+                    <div class="comp-card">
+                        <div class="comp-card-body">
+                            <div class="comp-card-icon ${meta.className}">
+                                <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                            </div>
+                            <div class="comp-card-info">
+                                <strong>${escapeHtml(r.descricao)}</strong>
+                                <span class="comp-card-sub">${valor} · ${freqLabel[r.frequencia] || r.frequencia}</span>
+                                <span class="comp-card-period">De ${inicio} até ${fim}</span>
+                            </div>
+                        </div>
+                        <div class="comp-card-actions">
+                            <span class="status-badge status-${r.status.toLowerCase()}">${r.status}</span>
+                            <div class="comp-actions-right">
+                                <button class="secondary-button sm" type="button" data-edit-recorrencia="${r.id}">Editar</button>
+                                <button class="danger-button sm" type="button" data-cancel-recorrencia="${r.id}">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join("")}
+            </div>`;
+        }).join("");
+
+    bindCompromissosEdit(container);
+}
+
+function renderParcelamentos(list) {
+    byId("parcelamentos-loading").hidden = true;
+    const container = byId("parcelamentos-list");
+    const empty     = byId("parcelamentos-empty");
+    if (!container) return;
+
+    if (list.length === 0) {
+        if (empty) empty.hidden = false;
+        return;
+    }
+    if (empty) empty.hidden = true;
+
+    const active   = list.filter(r => r.status === "ATIVO");
+    const inactive = list.filter(r => r.status !== "ATIVO");
+
+    container.innerHTML = [
+        active.length   ? renderParcelamentoGroup("Em andamento", active)   : "",
+        inactive.length ? renderParcelamentoGroup("Encerrados / pausados", inactive) : "",
+    ].join("");
+
+    bindCompromissosEdit(container);
+}
+
+function renderParcelamentoGroup(title, list) {
+    return `
+        <div class="comp-group">
+            <h3 class="comp-group-title">
+                <span class="comp-group-dot daily"></span>
+                ${title}
+                <span class="comp-group-count">${list.length}</span>
+            </h3>
+            ${list.map(r => renderParcelamentoCard(r)).join("")}
+        </div>`;
+}
+
+function renderParcelamentoCard(r) {
+    const valor = money(r.valorCentavos / 100);
+    const info  = parcelaInfo(r);
+
+    if (!info) {
+        return `
+        <div class="comp-card parc-card">
+            <div class="comp-card-body">
+                <div class="comp-card-icon daily">
+                    <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+                </div>
+                <div class="comp-card-info">
+                    <strong>${escapeHtml(r.descricao)}</strong>
+                    <span class="comp-card-sub">${valor} / mês — sem data de fim</span>
+                </div>
+            </div>
+            <div class="comp-card-actions">
+                <span class="status-badge status-${r.status.toLowerCase()}">${r.status}</span>
+                <div class="comp-actions-right">
+                    <button class="secondary-button sm" type="button" data-edit-recorrencia="${r.id}">Editar</button>
+                    <button class="danger-button sm" type="button" data-cancel-recorrencia="${r.id}">Cancelar</button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    const pctCapped  = Math.min(info.pct, 100);
+    const pctClass   = pctCapped >= 100 ? "pct-good" : pctCapped >= 50 ? "pct-warn" : "pct-start";
+    const saldoFmt   = money(info.saldoRestante / 100);
+    const fimFmt     = formatYearMonth(r.mesFim);
+    const doneLabel  = info.remaining <= 0
+        ? `<span class="parc-done">✓ Quitado</span>`
+        : `<span class="parc-remain">${info.remaining} ${info.remaining === 1 ? "parcela restante" : "parcelas restantes"}</span>`;
+
+    return `
+    <div class="comp-card parc-card">
+        <div class="comp-card-body">
+            <div class="comp-card-icon daily">
+                <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+            </div>
+            <div class="comp-card-info">
+                <strong>${escapeHtml(r.descricao)}</strong>
+                <span class="comp-card-sub">${valor} / mês · Parcela ${info.elapsed} de ${info.total}</span>
+            </div>
+            <div class="comp-actions-right">
+                <button class="secondary-button sm" type="button" data-edit-recorrencia="${r.id}">Editar</button>
+                <button class="secondary-button sm" type="button" data-antecipar-parcelamento="${r.id}">Antecipar</button>
+            </div>
+        </div>
+        <div class="parc-progress-wrap">
+            <div class="parc-progress-bar">
+                <div class="parc-progress-fill ${pctClass}" style="width: ${pctCapped}%"></div>
+            </div>
+            <span class="parc-pct ${pctClass}">${info.pct}%</span>
+        </div>
+        <div class="comp-card-footer">
+            <small>Restam <strong>${saldoFmt}</strong> · até ${fimFmt}</small>
+            ${doneLabel}
+        </div>
+    </div>`;
+}
+
+/* parcela math — compara meses em formato YYYY-MM lexicograficamente (válido para ISO) */
+function parcelaInfo(rec) {
+    if (!rec.mesFim) return null;
+    const toN   = ym => { const [y, m] = ym.split("-").map(Number); return y * 12 + m - 1; };
+    const startN = toN(rec.mesInicio);
+    const endN   = toN(rec.mesFim);
+    const nowN   = toN(state.month);
+    const total     = endN - startN + 1;
+    const elapsed   = Math.min(Math.max(nowN - startN + 1, 0), total);
+    const remaining = total - elapsed;
+    const pct       = total > 0 ? Math.round((elapsed / total) * 100) : 0;
+    return { total, elapsed, remaining, pct, saldoRestante: remaining * rec.valorCentavos };
+}
+
+function formatYearMonth(ym) {
+    if (!ym) return "—";
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+}
+
+/* Tab switching */
+function bindCompromissosEdit(container) {
+    container.querySelectorAll("[data-edit-recorrencia]").forEach(btn =>
+        btn.addEventListener("click", () => openRecorrenciaEditDialog(Number(btn.dataset.editRecorrencia)))
+    );
+    container.querySelectorAll("[data-cancel-recorrencia]").forEach(btn =>
+        btn.addEventListener("click", () => requestCancelarRecorrencia(Number(btn.dataset.cancelRecorrencia)))
+    );
+    container.querySelectorAll("[data-antecipar-parcelamento]").forEach(btn =>
+        btn.addEventListener("click", () => requestAnteciparParcelamento(Number(btn.dataset.anteciparParcelamento)))
+    );
+}
+
+function requestCancelarRecorrencia(id) {
+    const rec = [...state.recorrencias, ...state.parcelamentos].find(item => item.id === id);
+    if (!rec) return;
+
+    setText("confirm-title", "Cancelar compromisso?");
+    setText("confirm-message", `A recorrencia "${rec.descricao}" deixara de projetar valores a partir de ${formatYearMonth(state.month)}.`);
+    setText("confirm-action", "Cancelar compromisso");
+    state.pendingConfirmation = async () => {
+        await apiFetch(`${API.recorrencias}/${id}/cancelar`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ aPartirDe: state.month })
+        });
+        toast("Compromisso cancelado.");
+        await Promise.all([loadCompromissos(), loadProjecoes()]);
+    };
+    byId("confirm-dialog")?.showModal();
+}
+
+async function requestAnteciparParcelamento(id) {
+    const rec = state.parcelamentos.find(item => item.id === id);
+    if (!rec) return;
+
+    const mesQuitacao = window.prompt("Mes de quitacao do parcelamento (AAAA-MM):", state.month);
+    if (!mesQuitacao) return;
+    if (!/^\d{4}-\d{2}$/.test(mesQuitacao)) {
+        toast("Informe o mes no formato AAAA-MM.", "error");
+        return;
+    }
+
+    try {
+        await apiFetch(`${API.recorrencias}/${id}/antecipar`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mesQuitacao })
+        });
+        toast("Parcelamento antecipado.");
+        await Promise.all([loadCompromissos(), loadProjecoes()]);
+    } catch (error) {
+        toast(error.message || "Nao foi possivel antecipar o parcelamento.", "error");
+    }
+}
+
+function switchCompromissosTab(tab) {
+    document.querySelectorAll(".comp-tab").forEach(b => b.classList.toggle("is-active", b.dataset.tab === tab));
+    document.querySelectorAll(".comp-tab-panel").forEach(p => p.classList.toggle("is-active", p.dataset.panel === tab));
+}
+
+/* ── Recorrência Edit Dialog ───────────────────────────────── */
+function openRecorrenciaEditDialog(id) {
+    const all = [...state.recorrencias, ...state.parcelamentos];
+    const rec = all.find(r => r.id === id);
+    if (!rec) { toast("Recorrência não encontrada.", "error"); return; }
+
+    const form = byId("recorrencia-edit-form");
+    if (!form) return;
+
+    byId("rec-edit-id").value          = rec.id;
+    byId("rec-edit-descricao").value   = rec.descricao;
+    byId("rec-edit-valor").value       = (rec.valorCentavos / 100).toFixed(2).replace(".", ",");
+    byId("rec-edit-mes-inicio").value  = rec.mesInicio;
+    byId("rec-edit-mes-fim").value     = rec.mesFim || "";
+    byId("rec-edit-dia").value         = rec.diaPreferencial;
+    byId("rec-edit-frequencia").value  = rec.frequencia;
+    byId("rec-edit-status").value      = rec.status;
+
+    setText("rec-edit-tipo-label", typeMeta(rec.tipo).label);
+
+    byId("recorrencia-edit-dialog")?.showModal();
+}
+
+async function saveRecorrenciaEdit(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+
+    const id     = byId("rec-edit-id").value;
+    const button = byId("rec-edit-save");
+    const orig   = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner"></span> Salvando`;
+
+    const payload = {
+        descricao:       byId("rec-edit-descricao").value.trim(),
+        valorCentavos:   Math.round(parseMoney(byId("rec-edit-valor").value) * 100),
+        mesInicio:       byId("rec-edit-mes-inicio").value,
+        mesFim:          nullIfBlank(byId("rec-edit-mes-fim").value),
+        diaPreferencial: Number(byId("rec-edit-dia").value),
+        frequencia:      byId("rec-edit-frequencia").value,
+        status:          byId("rec-edit-status").value,
+    };
+
+    try {
+        await apiFetch(`${API.recorrencias}/${id}`, {
+            method:  "PUT",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify(payload)
+        });
+        byId("recorrencia-edit-dialog").close();
+        toast("Recorrência atualizada.");
+        await loadCompromissos();
+    } catch (error) {
+        toast(error.message || "Não foi possível salvar.", "error");
+    } finally {
+        button.disabled  = false;
+        button.innerHTML = orig;
+    }
+}
+
 /* ── Helpers ───────────────────────────────────────────────── */
 function normalizeRate(value) { return number(value); }
 function typeMeta(type) { return TYPE_META[type] || TYPE_META.AJUSTE_SALDO; }
@@ -1144,6 +1677,11 @@ function entrySign(entry) { return typeMeta(entry.tipo).sign > 0 ? "+ " : "− "
 function currentYearMonth() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+function addMonths(month, offset) {
+    const [year, value] = month.split("-").map(Number);
+    const date = new Date(year, value - 1 + offset, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 function monthToDate(month) {
     const [year, value] = month.split("-").map(Number);

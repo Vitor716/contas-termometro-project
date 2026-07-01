@@ -1,4 +1,4 @@
-package br.com.contastermometro.configuracao.controller
+package br.com.contastermometro.orcamento.controller
 
 import br.com.contastermometro.orcamento.dto.SnapshotTermometroMensal
 import br.com.contastermometro.orcamento.service.SnapshotTermometroService

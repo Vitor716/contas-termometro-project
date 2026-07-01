@@ -1,8 +1,9 @@
 package br.com.contastermometro.lancamentos.enums
 
 enum class StatusParcelamento {
-    ATIVA,
+    ATIVO,
     CANCELADO,
     CONCLUIDO,
-    QUITADO
+    QUITADO,
+    INATIVO
 }

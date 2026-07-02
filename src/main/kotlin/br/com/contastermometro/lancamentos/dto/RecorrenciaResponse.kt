@@ -12,8 +12,13 @@ data class RecorrenciaResponse(
     val mesInicio: String,
     val mesFim: String?,
     val diaPreferencial: Int,
+    val parcelaInicio: Int? = null,
+    val parcelaTotal: Int? = null,
     val frequencia: Frequencia,
     val status: StatusParcelamento,
+    val categoria: String? = null,
+    val observacao: String? = null,
+    val idLote: String? = null,
 )
 
 
@@ -26,9 +31,28 @@ fun RecorrenciaLancamento.toResponse(): RecorrenciaResponse {
         mesInicio = this.mesInicio,
         mesFim = this.mesFim,
         diaPreferencial = this.diaPreferencial,
+        parcelaInicio = this.parcelaInicio ?: inferirProximaParcela(this.observacao),
+        parcelaTotal = this.parcelaTotal ?: inferirTotalParcelas(this.observacao),
         frequencia = this.frequencia,
-        status = this.status
+        status = this.status,
+        categoria = this.categoria,
+        observacao = this.observacao,
+        idLote = this.idLote
     )
+}
+
+private fun inferirProximaParcela(observacao: String?): Int? {
+    val match = Regex("""parcelas?\s+(\d+)(?:-(\d+))?/(\d+)""", RegexOption.IGNORE_CASE)
+        .find(observacao ?: "")
+        ?: return null
+    return (match.groupValues[2].toIntOrNull() ?: match.groupValues[1].toIntOrNull())?.plus(1)
+}
+
+private fun inferirTotalParcelas(observacao: String?): Int? {
+    val match = Regex("""parcelas?\s+\d+(?:-\d+)?/(\d+)""", RegexOption.IGNORE_CASE)
+        .find(observacao ?: "")
+        ?: return null
+    return match.groupValues[1].toIntOrNull()
 }
 
 fun RecorrenciaRequest.toModel(): RecorrenciaLancamento {
@@ -39,9 +63,12 @@ fun RecorrenciaRequest.toModel(): RecorrenciaLancamento {
         mesInicio = this.mesInicio,
         mesFim = this.mesFim,
         diaPreferencial = this.diaPreferencial,
+        parcelaInicio = this.parcelaInicio,
+        parcelaTotal = this.parcelaTotal,
         frequencia = this.frequencia,
         status = status,
         categoria = this.categoria,
-        observacao = this.observacao
+        observacao = this.observacao,
+        idLote = this.idLote
     )
 }

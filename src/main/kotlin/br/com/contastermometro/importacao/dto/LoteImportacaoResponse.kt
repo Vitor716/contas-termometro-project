@@ -10,6 +10,8 @@ data class LoteImportacaoResponse(
     var qtdFalhas: Int = 0,
     var totalProcessado: Int = 0,
     var logFalhasJson: String? = null,
+    var status: StatusLoteImportacao = StatusLoteImportacao.PENDENTE,
+    var hashArquivo: String? = null,
     var criadoEm: String = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
 )
 
@@ -21,5 +23,8 @@ fun LoteImportacao.toResponse(): LoteImportacaoResponse {
         qtdFalhas = qtdFalhas,
         totalProcessado = totalProcessado,
         logFalhasJson = logFalhasJson,
+        status = status,
+        hashArquivo = hashArquivo,
+        criadoEm = criadoEm,
     )
 }

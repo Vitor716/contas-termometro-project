@@ -9,6 +9,7 @@ import br.com.contastermometro.lancamentos.dto.RecorrenciaResponse
 import br.com.contastermometro.lancamentos.dto.toResponse
 import br.com.contastermometro.lancamentos.enums.StatusParcelamento
 import br.com.contastermometro.lancamentos.enums.TipoLancamento
+import br.com.contastermometro.lancamentos.repository.LancamentoRepository
 import br.com.contastermometro.lancamentos.repository.RecorrenciaLancamentoRepository
 import br.com.contastermometro.lancamentos.service.RecorrenciaLancamentoService
 import jakarta.transaction.Transactional
@@ -18,6 +19,7 @@ import java.time.YearMonth
 @Service
 class RecorrenciaLancamentoServiceImpl (
     private val recorrenciaRepository: RecorrenciaLancamentoRepository,
+    private val lancamentoRepository: LancamentoRepository,
 ) : RecorrenciaLancamentoService{
 
     @Transactional
@@ -32,9 +34,12 @@ class RecorrenciaLancamentoServiceImpl (
             valorCentavos = request.valorCentavos,
             categoria = request.categoria,
             observacao = request.observacao,
+            idLote = request.idLote,
             mesInicio = request.mesInicio,
             mesFim = request.mesFim,
             diaPreferencial = request.diaPreferencial,
+            parcelaInicio = request.parcelaInicio,
+            parcelaTotal = request.parcelaTotal,
             frequencia = request.frequencia,
             status = request.status
         )
@@ -70,9 +75,12 @@ class RecorrenciaLancamentoServiceImpl (
         rec.valorCentavos = request.valorCentavos
         rec.categoria = request.categoria
         rec.observacao = request.observacao
+        rec.idLote = request.idLote
         rec.mesInicio = request.mesInicio
         rec.mesFim = request.mesFim
         rec.diaPreferencial = request.diaPreferencial
+        rec.parcelaInicio = request.parcelaInicio
+        rec.parcelaTotal = request.parcelaTotal
         rec.frequencia = request.frequencia
         rec.status = request.status
 
@@ -103,6 +111,13 @@ class RecorrenciaLancamentoServiceImpl (
         require(request.mesQuitacao <= rec.mesFim!!) {
             "Mês de quitação (${request.mesQuitacao}) é posterior ao término original (${rec.mesFim})"
         }
+
+        val mesPosteriorQuitacao = YearMonth.parse(request.mesQuitacao).plusMonths(1)
+        lancamentoRepository.deleteMaterializadosDaRecorrenciaNoIntervalo(
+            recorrenciaId = rec.id!!,
+            mesInicio = mesPosteriorQuitacao.toString(),
+            mesFimExclusivo = YearMonth.parse(rec.mesFim!!).plusMonths(1).toString(),
+        )
 
         rec.mesFim = request.mesQuitacao
         rec.status = StatusParcelamento.INATIVO

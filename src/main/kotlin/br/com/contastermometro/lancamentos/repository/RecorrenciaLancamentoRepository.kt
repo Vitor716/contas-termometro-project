@@ -3,6 +3,7 @@ package br.com.contastermometro.lancamentos.repository
 import br.com.contastermometro.lancamentos.dto.RecorrenciaLancamento
 import br.com.contastermometro.lancamentos.enums.StatusParcelamento
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
@@ -12,13 +13,15 @@ interface RecorrenciaLancamentoRepository : JpaRepository<RecorrenciaLancamento,
 
     @Query("""
         SELECT r FROM RecorrenciaLancamento r 
-        WHERE r.status = 'ATIVA' 
+        WHERE r.status = 'ATIVO' 
         AND r.mesInicio <= :mesReferencia 
         AND (r.mesFim IS NULL OR r.mesFim >= :mesReferencia)
     """)
     fun findVigentesParaOMes(mesReferencia: String): List<RecorrenciaLancamento>
 
     fun findByCategoria(categoria: String): List<RecorrenciaLancamento>
+
+    fun findByCategoriaAndValorCentavos(categoria: String, valorCentavos: Long): List<RecorrenciaLancamento>
 
     @Query("""
         SELECT r FROM RecorrenciaLancamento r
@@ -31,4 +34,10 @@ interface RecorrenciaLancamentoRepository : JpaRepository<RecorrenciaLancamento,
         @Param("mes") mes: String,
         @Param("status") status: StatusParcelamento
     ): List<RecorrenciaLancamento>
+
+    fun findByIdLote(idLote: String): List<RecorrenciaLancamento>
+
+    @Modifying
+    @Query("DELETE FROM RecorrenciaLancamento r WHERE r.idLote = :idLote")
+    fun deleteByIdLote(idLote: String)
 }

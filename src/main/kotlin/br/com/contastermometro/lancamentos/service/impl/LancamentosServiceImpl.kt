@@ -60,16 +60,35 @@ class LancamentosServiceImpl(
         repository.deleteById(lancamento.id)
     }
 
+    override fun removerEmLote(ids: List<Long>) {
+        val idsUnicos = ids.distinct()
+        if (idsUnicos.isEmpty()) {
+            throw IllegalArgumentException("Informe ao menos um lancamento para remover.")
+        }
+        repository.deleteAllById(idsUnicos)
+    }
+
     override fun editar(id: Long, req: LancamentoRequest): LancamentoResponse {
         val existente = repository.findById(id)
             .orElseThrow { LancamentoNaoEncontradoException("Lançamento $id não encontrado.") }
 
-        if (req.escopoEdicao == EscopoEdicao.ESTE_MES && existente.recorrenciaId != null) {
-            return materializadorRecorrenciaService.editarComoExcecao(existente, req)
+        if (existente.recorrenciaId != null) {
+            return editarLancamentoRecorrente(existente, req)
         }
 
         atualizarCampos(existente, req)
         return repository.save(existente).toResponse()
+    }
+
+    private fun editarLancamentoRecorrente(
+        existente: Lancamento,
+        req: LancamentoRequest
+    ): LancamentoResponse {
+        return when (req.escopoEdicao ?: EscopoEdicao.ESTE_MES) {
+            EscopoEdicao.ESTE_MES -> materializadorRecorrenciaService.editarSomenteEsteMes(existente, req)
+            EscopoEdicao.ESTE_E_PROXIMOS -> materializadorRecorrenciaService.editarEsteEProximos(existente, req)
+            EscopoEdicao.TODA_A_SERIE -> materializadorRecorrenciaService.editarTodaSerie(existente, req)
+        }
     }
 
     private fun atualizarCampos(entidade: Lancamento, req: LancamentoRequest) {

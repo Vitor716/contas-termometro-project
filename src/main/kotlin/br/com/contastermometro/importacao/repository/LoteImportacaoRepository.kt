@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface LoteImportacaoRepository : JpaRepository<LoteImportacao, String>
+interface LoteImportacaoRepository : JpaRepository<LoteImportacao, String> {
+    fun existsByHashArquivo(hashArquivo: String): Boolean
+}

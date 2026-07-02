@@ -282,6 +282,7 @@
                         <table>
                             <thead>
                             <tr>
+                                <th class="select-column"><input id="entry-select-all" type="checkbox" aria-label="Selecionar todos os lancamentos visiveis"></th>
                                 <th>Data</th>
                                 <th>Descrição</th>
                                 <th>Tipo</th>
@@ -297,6 +298,17 @@
                     <div class="table-footer">
                         <span id="entry-count">0 lançamentos</span>
                         <strong id="entry-net-total">Saldo listado: R$ 0,00</strong>
+                    </div>
+
+                    <div id="entry-bulk-actions" class="bulk-actions" hidden>
+                        <span id="entry-selected-count">0 selecionados</span>
+                        <div>
+                            <button id="clear-selected-entries" class="secondary-button sm" type="button">Limpar</button>
+                            <button id="delete-selected-entries" class="danger-button sm" type="button">
+                                <svg aria-hidden="true"><use href="#icon-trash"></use></svg>
+                                Excluir selecionados
+                            </button>
+                        </div>
                     </div>
 
                     <div id="entries-empty" class="empty-state" hidden>
@@ -332,6 +344,8 @@
                     <div class="metric-card"><div class="metric-label">Total de Saídas</div><strong id="annual-out">R$ 0,00</strong><small id="annual-out-average"></small></div>
                     <div class="metric-card"><div class="metric-label">Total Investido</div><strong id="annual-invested">R$ 0,00</strong><small id="annual-invested-rate"></small></div>
                     <div class="metric-card featured"><div class="metric-label">Saldo Acumulado</div><strong id="annual-balance">R$ 0,00</strong><small id="annual-active-months"></small></div>
+                    <div class="metric-card"><div class="metric-label">Parcelas do Ano</div><strong id="annual-installments">R$ 0,00</strong><small>Compromissos parcelados projetados</small></div>
+                    <div class="metric-card"><div class="metric-label">Compromissos Projetados</div><strong id="annual-commitment">R$ 0,00</strong><small id="annual-commitment-rate"></small></div>
                 </div>
 
                 <div class="annual-grid">
@@ -354,6 +368,8 @@
                             <div><span class="highlight-icon good"><svg aria-hidden="true"><use href="#icon-arrow-down"></use></svg></span><p><small>Mês de maior receita</small><strong id="annual-best-income">—</strong><span id="annual-best-income-value">R$ 0,00</span></p></div>
                             <div><span class="highlight-icon investment"><svg aria-hidden="true"><use href="#icon-leaf"></use></svg></span><p><small>Mês que mais investiu</small><strong id="annual-best-investment">—</strong><span id="annual-best-investment-value">R$ 0,00</span></p></div>
                             <div><span class="highlight-icon warning"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span><p><small>Mês de maiores gastos</small><strong id="annual-highest-out">—</strong><span id="annual-highest-out-value">R$ 0,00</span></p></div>
+                            <div><span class="highlight-icon good"><svg aria-hidden="true"><use href="#icon-chart"></use></svg></span><p><small>Melhor mês financeiro</small><strong id="annual-best-month">—</strong><span id="annual-best-month-value">R$ 0,00</span></p></div>
+                            <div><span class="highlight-icon warning"><svg aria-hidden="true"><use href="#icon-sliders"></use></svg></span><p><small>Pior mês financeiro</small><strong id="annual-worst-month">—</strong><span id="annual-worst-month-value">R$ 0,00</span></p></div>
                         </div>
                     </section>
                 </div>
@@ -414,6 +430,63 @@
                         </div>
                     </section>
                 </div>
+
+                <section id="import-preview-panel" class="panel import-review-panel" hidden>
+                    <div class="panel-heading import-review-heading">
+                        <div>
+                            <p class="eyebrow">Importacao inteligente</p>
+                            <h2>Revisao de Importacao</h2>
+                            <small id="import-preview-summary">Revise categorias, parcelas e possiveis duplicidades antes de confirmar.</small>
+                        </div>
+                        <span id="import-preview-lote" class="import-review-lote"></span>
+                    </div>
+
+                    <div class="import-review-stats">
+                        <div class="import-review-stat">
+                            <span>Total</span>
+                            <strong id="import-preview-total">0</strong>
+                        </div>
+                        <div class="import-review-stat warning">
+                            <span>Duplicidades</span>
+                            <strong id="import-preview-duplicates">0</strong>
+                        </div>
+                        <div class="import-review-stat good">
+                            <span>Selecionadas</span>
+                            <strong id="import-preview-selected">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="import-review-table-wrap">
+                        <table class="import-review-table">
+                            <thead>
+                            <tr>
+                                <th>Importar</th>
+                                <th>Data</th>
+                                <th>Descricao</th>
+                                <th>Valor</th>
+                                <th>Categoria</th>
+                                <th>Parcela</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody id="import-preview-rows"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="import-review-actions">
+                        <small id="import-preview-action-summary">Nenhuma linha selecionada.</small>
+                        <div class="import-review-action-buttons">
+                            <button id="cancel-import-button" class="secondary-button" type="button">
+                                <svg aria-hidden="true"><use href="#icon-close"></use></svg>
+                                Cancelar
+                            </button>
+                            <button id="confirm-import-button" class="primary-button" type="button">
+                                <svg aria-hidden="true"><use href="#icon-upload"></use></svg>
+                                Confirmar Importacao
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <!-- ═══════════════ CONFIGURAÇÕES ═══════════════ -->
@@ -881,6 +954,7 @@
                 <select name="escopoEdicao" style="width: 100%;">
                     <option value="ESTE_MES">Somente este mês</option>
                     <option value="ESTE_E_PROXIMOS">Este e próximos meses</option>
+                    <option value="TODA_A_SERIE">Toda a série</option>
                 </select>
                 <small>⚠ Alterar "Este e próximos meses" pode impactar regras futuras já configuradas.</small>
             </label>

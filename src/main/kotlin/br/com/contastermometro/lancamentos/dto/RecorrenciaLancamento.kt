@@ -32,6 +32,12 @@ class RecorrenciaLancamento(
     @Column(name = "dia_preferencial", nullable = false)
     var diaPreferencial: Int,
 
+    @Column(name = "parcela_inicio")
+    var parcelaInicio: Int? = null,
+
+    @Column(name = "parcela_total")
+    var parcelaTotal: Int? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var frequencia: Frequencia = Frequencia.MENSAL,
@@ -43,6 +49,9 @@ class RecorrenciaLancamento(
     var categoria: String? = null,
 
     var observacao: String? = null,
+
+    @Column(name = "id_lote", length = 100)
+    var idLote: String? = null,
 
     @Column(name = "criado_em", nullable = false)
     var criadoEm: String = agora(),

@@ -15,6 +15,8 @@ data class LancamentoResponse(
     var mesReferencia: String,
     var categoria: String? = null,
     var observacao: String? = null,
+    var recorrenciaId: Long? = null,
+    var recorrenciaExcecao: Boolean = false,
 )
 
 fun Lancamento.toResponse(): LancamentoResponse {
@@ -28,6 +30,8 @@ fun Lancamento.toResponse(): LancamentoResponse {
         mesReferencia = mesReferencia,
         categoria = categoria,
         observacao = observacao,
+        recorrenciaId = recorrenciaId,
+        recorrenciaExcecao = recorrenciaExcecao,
     )
 }
 

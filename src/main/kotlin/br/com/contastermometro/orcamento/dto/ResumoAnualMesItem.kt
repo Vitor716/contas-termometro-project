@@ -11,5 +11,11 @@ data class ResumoAnualMesItem(
     val totalInvestido: BigDecimal,
     val saidaTotal: BigDecimal,
     val saldoMes: BigDecimal,
-    val porcentagemInvestida: BigDecimal
+    val porcentagemInvestida: BigDecimal,
+    val metaInvestimento: BigDecimal,
+    val performanceContraMeta: BigDecimal,
+    val parcelamentos: BigDecimal,
+    val totalCompromissosProjetados: BigDecimal,
+    val saldoProjetado: BigDecimal,
+    val taxaComprometimento: BigDecimal
 )

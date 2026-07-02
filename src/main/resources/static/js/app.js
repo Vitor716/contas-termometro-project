@@ -3,7 +3,7 @@ const API = {
     recorrencias: "/api/recorrencias",
     summary:      "/api/orcamentos/mensal",
     annualSummary:"/api/orcamentos/anual",
-    imports:      "/api/importacoes",
+    imports:      "/api/importacao",
     metas:        "/api/configuracao/metas",
     termometro:   "/api/configuracao/termometro",
     snapshot:     "/api/configuracoes/termometros/snapshots",
@@ -26,13 +26,17 @@ const state = {
     annualYear: new Date().getFullYear(),
     entries: [],
     summary: null,
+    annualSummary: null,
     annualMonths: [],
     imports: [],
+    importPreview: null,
     recorrencias: [],
     parcelamentos: [],
     projecoes: [],
     consultorResultado: null,
     selectedFile: null,
+    selectedEntryIds: new Set(),
+    importAbortController: null,
     pendingConfirmation: null,
     activeView: "dashboard",
     showOnlyRecurring: false
@@ -302,9 +306,11 @@ async function loadAnnual() {
     setAnnualLoading(true);
     try {
         const response = await apiFetch(`${API.annualSummary}?ano=${state.annualYear}`);
+        state.annualSummary = response;
         state.annualMonths = response.meses || [];
         renderAnnual();
     } catch (error) {
+        state.annualSummary = null;
         state.annualMonths = [];
         renderAnnual();
         toast(error.message || "Não foi possível consolidar o ano.", "error");
@@ -318,7 +324,36 @@ function emptySummary() {
         somaEntradas: 0, somaSaidasFixas: 0, totalGastoDiario: 0,
         totalInvestido: 0, saidaTotal: 0, saldoMes: 0,
         porcentagemInvestida: 0, metaInvestimento: 0,
-        performanceContraMeta: 0, gastoDiarioEsperadoAtual: 0, gastoDiarioRestante: 0
+        performanceContraMeta: 0, gastoDiarioEsperadoAtual: 0, gastoDiarioRestante: 0,
+        parcelamentos: 0, totalCompromissosProjetados: 0, saldoProjetado: 0,
+        taxaComprometimento: 0
+    };
+}
+
+function emptyAnnualSummary() {
+    return {
+        ano: state.annualYear,
+        totalEntradas: 0,
+        saidaTotal: 0,
+        totalInvestido: 0,
+        saldoAcumulado: 0,
+        percentualInvestidoAnual: 0,
+        mediaMensalEntradasCalendario: 0,
+        mediaMensalEntradasAtiva: 0,
+        mediaMensalSaidasCalendario: 0,
+        mediaMensalSaidasAtiva: 0,
+        mediaMensalInvestidaCalendario: 0,
+        mediaMensalInvestidaAtiva: 0,
+        mesesComMovimentacao: 0,
+        maiorEntrada: null,
+        maiorInvestimento: null,
+        maiorSaida: null,
+        melhorMes: null,
+        piorMes: null,
+        totalParcelamentos: 0,
+        totalCompromissosProjetados: 0,
+        mediaComprometimento: 0,
+        meses: []
     };
 }
 
@@ -331,7 +366,10 @@ function setAnnualLoading(loading) {
 }
 
 function renderAnnual() {
-    const months = state.annualMonths.length
+    const summary = state.annualSummary || emptyAnnualSummary();
+    const months = summary.meses?.length
+        ? summary.meses
+        : state.annualMonths.length
         ? state.annualMonths
         : Array.from({ length: 12 }, (_, i) => ({
             month: `${state.annualYear}-${String(i + 1).padStart(2, "0")}`,
@@ -339,33 +377,29 @@ function renderAnnual() {
             ...emptySummary()
         }));
 
-    const total       = key => months.reduce((sum, m) => sum + number(m[key]), 0);
-    const income      = total("somaEntradas");
-    const out         = total("saidaTotal");
-    const invested    = total("totalInvestido");
-    const balance     = total("saldoMes");
-    const activeMonths = months.filter(m => m.entriesCount > 0).length;
-    const divisor     = activeMonths || 12;
-
-    setText("annual-income",          money(income));
-    setText("annual-income-average",  `Média mensal: ${money(income / divisor)}`);
-    setText("annual-out",             money(out));
-    setText("annual-out-average",     `Média mensal: ${money(out / divisor)}`);
-    setText("annual-invested",        money(invested));
-    setText("annual-invested-rate",   `${percent(income > 0 ? invested / income : 0)} das entradas`);
-    setText("annual-balance",         money(balance));
-    setText("annual-active-months",   `${activeMonths} ${activeMonths === 1 ? "mês com movimentação" : "meses com movimentação"}`);
+    setText("annual-income",          money(summary.totalEntradas));
+    setText("annual-income-average",  `Média ativa: ${money(summary.mediaMensalEntradasAtiva)}`);
+    setText("annual-out",             money(summary.saidaTotal));
+    setText("annual-out-average",     `Média ativa: ${money(summary.mediaMensalSaidasAtiva)}`);
+    setText("annual-invested",        money(summary.totalInvestido));
+    setText("annual-invested-rate",   `${percent(summary.percentualInvestidoAnual)} das entradas · média ${money(summary.mediaMensalInvestidaAtiva)}`);
+    setText("annual-balance",         money(summary.saldoAcumulado));
+    setText("annual-active-months",   `${summary.mesesComMovimentacao} ${summary.mesesComMovimentacao === 1 ? "mês com movimentação" : "meses com movimentação"}`);
+    setText("annual-installments",    money(summary.totalParcelamentos));
+    setText("annual-commitment",      money(summary.totalCompromissosProjetados));
+    setText("annual-commitment-rate", `Média comprometida: ${percent(summary.mediaComprometimento)}`);
 
     renderAnnualChart(months);
-    renderAnnualHighlights(months);
+    renderAnnualHighlights(summary);
     renderAnnualMonths(months);
 }
 
-function renderAnnualHighlights(months) {
-    const active = months.filter(m => m.entriesCount > 0);
-    setAnnualHighlight("annual-best-income",      "annual-best-income-value",      maxMonth(active, "somaEntradas"),  "somaEntradas");
-    setAnnualHighlight("annual-best-investment",  "annual-best-investment-value",  maxMonth(active, "totalInvestido"),"totalInvestido");
-    setAnnualHighlight("annual-highest-out",      "annual-highest-out-value",      maxMonth(active, "saidaTotal"),    "saidaTotal");
+function renderAnnualHighlights(summary) {
+    setAnnualHighlight("annual-best-income",      "annual-best-income-value",      summary.maiorEntrada,      "somaEntradas");
+    setAnnualHighlight("annual-best-investment",  "annual-best-investment-value",  summary.maiorInvestimento, "totalInvestido");
+    setAnnualHighlight("annual-highest-out",      "annual-highest-out-value",      summary.maiorSaida,        "saidaTotal");
+    setAnnualHighlight("annual-best-month",       "annual-best-month-value",       summary.melhorMes,         "saldoMes");
+    setAnnualHighlight("annual-worst-month",      "annual-worst-month-value",      summary.piorMes,           "saldoMes");
 }
 
 function renderAnnualChart(months) {
@@ -404,10 +438,6 @@ function renderAnnualChart(months) {
     }).join("");
 }
 
-function maxMonth(months, key) {
-    return months.reduce((best, m) => (!best || number(m[key]) > number(best[key])) ? m : best, null);
-}
-
 function setAnnualHighlight(labelId, valueId, item, key) {
     setText(labelId, item ? monthName(item.month) : "—");
     setText(valueId, money(item ? item[key] : 0));
@@ -420,6 +450,7 @@ function renderAnnualMonths(months) {
     container.innerHTML = months.map(m => {
         const balance   = number(m.saldoMes);
         const fixedOut  = number(m.somaSaidasFixas);
+        const commitmentRate = number(m.taxaComprometimento);
 
         // Negative caused mainly by fixed recurring expenses → amber (informative), not red (alarming)
         const isRecurringNeg = balance < 0 && fixedOut >= Math.abs(balance) * 0.5;
@@ -443,6 +474,8 @@ function renderAnnualMonths(months) {
                 <span>Saídas<strong>${money(m.saidaTotal)}</strong></span>
                 <span>Investido<strong>${money(m.totalInvestido)}</strong></span>
                 <span>Gasto diário<strong>${money(m.totalGastoDiario)}</strong></span>
+                <span>Parcelas<strong>${money(m.parcelamentos)}</strong></span>
+                <span>Comprometido<strong>${percent(commitmentRate)}</strong></span>
             </div>
         </article>`;
     }).join("");
@@ -755,6 +788,9 @@ function renderRecentEntries() {
 /* ── Entry Filters ─────────────────────────────────────────── */
 function bindEntryFilters() {
     byId("entry-search")?.addEventListener("input", renderEntries);
+    byId("entry-select-all")?.addEventListener("change", toggleAllVisibleEntries);
+    byId("delete-selected-entries")?.addEventListener("click", requestSelectedEntriesDeletion);
+    byId("clear-selected-entries")?.addEventListener("click", clearEntrySelection);
 
     byId("entry-type-filter")?.addEventListener("change", event => {
         const type = event.target.value;
@@ -781,31 +817,31 @@ function updateEntryFilterContext(type, label) {
 }
 
 function renderEntries() {
-    const search = normalizeText(byId("entry-search")?.value ?? "");
-    const type   = byId("entry-type-filter")?.value ?? "";
-
-    const filtered = [...state.entries]
-        .filter(entry => !type || entry.tipo === type)
-        .filter(entry => !state.showOnlyRecurring || (entry.recorrenciaId && !entry.recorrenciaExcecao))
-        .filter(entry => !search || normalizeText(`${entry.descricao} ${entry.categoria || ""} ${entry.observacao || ""}`).includes(search))
+    const filtered = getVisibleEntriesForSelection()
         .sort((a, b) => String(b.data).localeCompare(String(a.data)) || b.id - a.id);
 
     const tbody = byId("entries-table-body");
     const empty = byId("entries-empty");
     if (!tbody || !empty) return;
 
+    state.selectedEntryIds = new Set(
+        [...state.selectedEntryIds].filter(id => state.entries.some(entry => entry.id === id))
+    );
+
     tbody.innerHTML = filtered.map(entry => {
-        const meta         = typeMeta(entry.tipo);
+        const meta = typeMeta(entry.tipo);
         const isRecorrente = entry.recorrenciaId && !entry.recorrenciaExcecao;
-        const badge        = isRecorrente ? `<span class="badge-recorrente" title="Recorrente">🔄</span>` : "";
+        const badge = isRecorrente ? `<span class="badge-recorrente" title="Recorrente">${icon("icon-refresh")}</span>` : "";
+        const checked = state.selectedEntryIds.has(entry.id) ? "checked" : "";
         return `<tr>
+            <td class="select-column" data-label="Selecionar"><input class="entry-select-check" type="checkbox" data-select-entry="${entry.id}" ${checked} aria-label="Selecionar ${escapeHtml(entry.descricao)}"></td>
             <td data-label="Data">${formatDate(entry.data)}</td>
-            <td class="table-description" data-label="Descrição">
+            <td class="table-description" data-label="Descricao">
                 <strong>${escapeHtml(entry.descricao)}</strong>${badge}
                 <small>${escapeHtml(entry.observacao || "")}</small>
             </td>
             <td data-label="Tipo"><span class="type-badge ${meta.className}">${meta.label}</span></td>
-            <td data-label="Categoria">${escapeHtml(entry.categoria || "—")}</td>
+            <td data-label="Categoria">${escapeHtml(entry.categoria || "-")}</td>
             <td class="amount-column" data-label="Valor"><strong class="${meta.className}">${entrySign(entry)}${money(entry.valor)}</strong></td>
             <td><div class="table-actions">
                 <button class="icon-button" type="button" data-edit-entry="${entry.id}" aria-label="Editar ${escapeHtml(entry.descricao)}">${icon("icon-edit")}</button>
@@ -818,10 +854,22 @@ function renderEntries() {
     const tableWrap = document.querySelector(".table-wrap");
     if (tableWrap) tableWrap.hidden = filtered.length === 0;
 
-    setText("entry-count", filtered.length === 1 ? "1 lançamento" : `${filtered.length} lançamentos`);
+    setText("entry-count", filtered.length === 1 ? "1 lancamento" : `${filtered.length} lancamentos`);
     const total = filtered.reduce((sum, e) => sum + number(e.valor) * typeMeta(e.tipo).sign, 0);
     setText("entry-net-total", `Saldo listado: ${money(total)}`);
+    updateEntryBulkActions(filtered);
 
+    tbody.querySelectorAll("[data-select-entry]").forEach(input =>
+        input.addEventListener("change", event => {
+            const id = Number(event.currentTarget.dataset.selectEntry);
+            if (event.currentTarget.checked) {
+                state.selectedEntryIds.add(id);
+            } else {
+                state.selectedEntryIds.delete(id);
+            }
+            updateEntryBulkActions(filtered);
+        })
+    );
     tbody.querySelectorAll("[data-edit-entry]").forEach(btn =>
         btn.addEventListener("click", () => openEntryDialog(Number(btn.dataset.editEntry)))
     );
@@ -830,6 +878,45 @@ function renderEntries() {
     );
 }
 
+function getVisibleEntriesForSelection() {
+    const search = normalizeText(byId("entry-search")?.value ?? "");
+    const type = byId("entry-type-filter")?.value ?? "";
+    return [...state.entries]
+        .filter(entry => !type || entry.tipo === type)
+        .filter(entry => !state.showOnlyRecurring || (entry.recorrenciaId && !entry.recorrenciaExcecao))
+        .filter(entry => !search || normalizeText(`${entry.descricao} ${entry.categoria || ""} ${entry.observacao || ""}`).includes(search));
+}
+
+function updateEntryBulkActions(visibleEntries = []) {
+    const selected = state.selectedEntryIds.size;
+    const bulkBar = byId("entry-bulk-actions");
+    if (bulkBar) bulkBar.hidden = selected === 0;
+    setText("entry-selected-count", selected === 1 ? "1 selecionado" : `${selected} selecionados`);
+
+    const selectAll = byId("entry-select-all");
+    if (!selectAll) return;
+
+    const visibleIds = visibleEntries.map(entry => entry.id);
+    const selectedVisible = visibleIds.filter(id => state.selectedEntryIds.has(id)).length;
+    selectAll.checked = visibleIds.length > 0 && selectedVisible === visibleIds.length;
+    selectAll.indeterminate = selectedVisible > 0 && selectedVisible < visibleIds.length;
+}
+
+function toggleAllVisibleEntries(event) {
+    getVisibleEntriesForSelection().forEach(entry => {
+        if (event.currentTarget.checked) {
+            state.selectedEntryIds.add(entry.id);
+        } else {
+            state.selectedEntryIds.delete(entry.id);
+        }
+    });
+    renderEntries();
+}
+
+function clearEntrySelection() {
+    state.selectedEntryIds.clear();
+    renderEntries();
+}
 /* ── Entry Form ────────────────────────────────────────────── */
 function bindEntryForm() {
     ["new-entry-top", "new-entry-page", "new-entry-empty"].forEach(id =>
@@ -867,6 +954,7 @@ function openEntryDialog(id = null) {
         if (recurringSection) recurringSection.hidden = true;
         const entry = state.entries.find(e => e.id === id);
         if (entry) {
+            byId("entry-id").value = entry.id;
             if (escopoContainer) escopoContainer.hidden = !entry.recorrenciaId;
             form.elements.tipo.value        = entry.tipo;
             // Sync Alpine's `tipo` state via the fieldset @change listener
@@ -937,15 +1025,20 @@ async function saveEntry(event) {
 
         // Passo 1 — criar a recorrência e capturar o id gerado
         if (isRecorrente) {
+            const mesInicioRec = form.elements.mesInicio?.value || "";
+            const mesFimRec = nullIfBlank(form.elements.mesFim?.value);
+            const totalParcelasRec = isParcelado && mesInicioRec && mesFimRec ? monthsBetweenInclusive(mesInicioRec, mesFimRec) : null;
             const recorrenciaPayload = {
                 tipo:            tipo,
                 descricao:       byId("entry-description").value.trim(),
                 valorCentavos:   Math.round(valorDecimal * 100),
                 categoria:       isParcelado ? "PARCELAMENTO" : nullIfBlank(byId("entry-category").value),
                 observacao:      nullIfBlank(byId("entry-notes").value),
-                mesInicio:       form.elements.mesInicio?.value || "",
-                mesFim:          nullIfBlank(form.elements.mesFim?.value),
+                mesInicio:       mesInicioRec,
+                mesFim:          mesFimRec,
                 diaPreferencial: Number(form.elements.diaPreferencial?.value || 1),
+                parcelaInicio:   isParcelado ? 1 : null,
+                parcelaTotal:    totalParcelasRec,
                 frequencia:      isParcelado ? "MENSAL" : (form.elements.frequencia?.value  || "MENSAL"),
                 status:          isParcelado ? "ATIVO"  : (form.elements.statusRecorrencia?.value || "ATIVO"),
             };
@@ -1015,6 +1108,26 @@ function requestEntryDeletion(id) {
     byId("confirm-dialog")?.showModal();
 }
 
+function requestSelectedEntriesDeletion() {
+    const ids = [...state.selectedEntryIds];
+    if (!ids.length) return;
+
+    setText("confirm-title", "Excluir lancamentos selecionados?");
+    setText("confirm-message", `${ids.length} lancamento(s) serao removidos permanentemente.`);
+    setText("confirm-action", "Excluir selecionados");
+    state.pendingConfirmation = async () => {
+        await apiFetch(`${API.entries}/lote`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids })
+        });
+        state.selectedEntryIds.clear();
+        toast("Lancamentos removidos.");
+        await loadMonth();
+    };
+    byId("confirm-dialog")?.showModal();
+}
+
 function bindConfirmation() {
     byId("confirm-dialog")?.addEventListener("close", async event => {
         if (event.target.returnValue !== "confirm" || !state.pendingConfirmation) {
@@ -1048,7 +1161,9 @@ function bindImport() {
     }));
     zone.addEventListener("drop", event => selectFile(event.dataTransfer.files[0]));
     byId("remove-file")?.addEventListener("click", () => selectFile(null));
-    byId("upload-button")?.addEventListener("click", uploadCsv);
+    byId("upload-button")?.addEventListener("click", uploadCsvPreview);
+    byId("confirm-import-button")?.addEventListener("click", confirmarImportacao);
+    byId("cancel-import-button")?.addEventListener("click", cancelarImportacao);
     byId("refresh-imports")?.addEventListener("click", loadImports);
 }
 
@@ -1073,29 +1188,190 @@ function selectFile(file) {
     }
 }
 
-async function uploadCsv() {
+async function uploadCsvPreview(event) {
+    event?.preventDefault();
     if (!state.selectedFile) return;
-    const button   = byId("upload-button");
+    const button = byId("upload-button");
     const original = button.innerHTML;
-    button.disabled  = true;
-    button.innerHTML = `<span class="spinner"></span> Processando arquivo`;
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner"></span> Gerando preview`;
 
     const data = new FormData();
     data.append("file", state.selectedFile);
+    state.importAbortController = new AbortController();
 
     try {
-        const result    = await apiFetch(`${API.imports}/nubank`, { method: "POST", body: data });
-        const successes = result.sucessos?.length || 0;
-        const failures  = result.falhas?.length || 0;
-        toast(`${successes} lançamento(s) importado(s)${failures ? ` e ${failures} linha(s) rejeitada(s)` : ""}.`);
+        const result = await apiFetch(`${API.imports}/preview`, {
+            method: "POST",
+            body: data,
+            signal: state.importAbortController.signal
+        });
+        state.importPreview = result;
+        renderImportPreview();
+        toast(`${result.linhas?.length || 0} linha(s) prontas para revisao.`);
         selectFile(null);
-        await Promise.all([loadImports(), loadMonth()]);
     } catch (error) {
-        toast(error.message || "Não foi possível importar o arquivo.", "error");
+        if (error.name === "AbortError") {
+            toast("Importacao cancelada.");
+            return;
+        }
+        toast(error.message || "Nao foi possivel importar o arquivo.", "error");
     } finally {
-        button.disabled  = !state.selectedFile;
+        state.importAbortController = null;
+        button.disabled = !state.selectedFile;
         button.innerHTML = original;
     }
+}
+
+async function cancelarImportacao() {
+    const preview = state.importPreview;
+    if (state.importAbortController) {
+        state.importAbortController.abort();
+    }
+
+    state.importPreview = null;
+    renderImportPreview();
+    selectFile(null);
+
+    if (!preview?.loteId) return;
+
+    try {
+        await apiFetch(`${API.imports}/${encodeURIComponent(preview.loteId)}`, { method: "DELETE" });
+        await loadImports();
+        toast("Importacao cancelada.");
+    } catch (error) {
+        toast(error.message || "Nao foi possivel cancelar a importacao.", "error");
+    }
+}
+function renderImportPreview() {
+    const panel = byId("import-preview-panel");
+    const rows = byId("import-preview-rows");
+    if (!panel || !rows) return;
+
+    const preview = state.importPreview;
+    panel.hidden = !preview;
+    if (!preview) {
+        rows.innerHTML = "";
+        return;
+    }
+
+    setText("import-preview-summary", "Revise categorias, desmarque duplicidades e confirme apenas as linhas corretas.");
+    setText("import-preview-lote", preview.loteId);
+    setText("import-preview-total", preview.linhas?.length || 0);
+    setText("import-preview-duplicates", (preview.linhas || []).filter(linha => linha.isDuplicidade).length);
+    rows.innerHTML = (preview.linhas || []).map(linha => {
+        const parcela = linha.isParcelamento ? `${linha.parcelaAtual || "-"} / ${linha.parcelaTotal || "-"}` : "-";
+        const ajusteFatura = isAjusteFatura(linha.categoriaSugerida);
+        const checked = linha.isDuplicidade || ajusteFatura ? "" : "checked";
+        const status = ajusteFatura
+            ? `<span class="import-review-pill warning">Fatura</span>`
+            : linha.isDuplicidade
+            ? `<span class="import-review-pill warning">Revisar</span>`
+            : `<span class="import-review-pill good">Novo</span>`;
+        return `<tr class="${linha.isDuplicidade || ajusteFatura ? "is-duplicate" : ""}" data-preview-line="${linha.id}">
+            <td data-label="Importar"><input class="import-review-check" type="checkbox" data-preview-importar="${linha.id}" ${checked}></td>
+            <td class="import-review-date" data-label="Data">${escapeHtml(formatDate(linha.data))}</td>
+            <td class="import-review-description" data-label="Descricao">
+                <strong>${escapeHtml(linha.descricaoLimpa)}</strong>
+                ${linha.descricaoOriginal && linha.descricaoOriginal !== linha.descricaoLimpa ? `<small>Original: ${escapeHtml(linha.descricaoOriginal)}</small>` : ""}
+            </td>
+            <td class="import-review-value" data-label="Valor">${money(Number(linha.valor || 0))}</td>
+            <td data-label="Categoria">
+                <select class="import-review-category" data-preview-categoria="${linha.id}">
+                    ${renderCategoriaOptions(linha.categoriaSugerida)}
+                </select>
+            </td>
+            <td data-label="Parcela"><span class="import-review-pill">${escapeHtml(parcela)}</span></td>
+            <td data-label="Status">${status}</td>
+        </tr>`;
+    }).join("");
+
+    rows.querySelectorAll("[data-preview-importar]").forEach(input =>
+        input.addEventListener("change", updateImportPreviewSelection)
+    );
+    updateImportPreviewSelection();
+}
+
+function renderCategoriaOptions(selected) {
+    const categorias = [
+        "Cartao Nubank",
+        "SAIDA_FIXA",
+        "PARCELAMENTO",
+        "PAGAMENTO_FATURA",
+        "DESCONTO_ANTECIPACAO",
+        "GASTO_DIARIO",
+        "ENTRADA",
+        "INVESTIMENTO"
+    ];
+    const atual = selected || "Cartao Nubank";
+    return categorias.map(categoria =>
+        `<option value="${escapeHtml(categoria)}" ${categoria === atual ? "selected" : ""}>${escapeHtml(categoria)}</option>`
+    ).join("");
+}
+
+function isAjusteFatura(categoria) {
+    return categoria === "PAGAMENTO_FATURA" || categoria === "DESCONTO_ANTECIPACAO";
+}
+
+async function confirmarImportacao() {
+    const preview = state.importPreview;
+    if (!preview) return;
+
+    const button = byId("confirm-import-button");
+    const original = button?.innerHTML || "";
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner"></span> Confirmando`;
+    }
+
+    const rows = byId("import-preview-rows");
+    const linhas = (preview.linhas || []).map(linha => ({
+        id: linha.id,
+        categoria: rows?.querySelector(`[data-preview-categoria="${linha.id}"]`)?.value || linha.categoriaSugerida || "Cartao Nubank",
+        importar: Boolean(rows?.querySelector(`[data-preview-importar="${linha.id}"]`)?.checked)
+    }));
+
+    try {
+        await apiFetch(`${API.imports}/lotes/${encodeURIComponent(preview.loteId)}/confirmar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ linhas })
+        });
+        toast("Importacao confirmada.");
+        state.importPreview = null;
+        renderImportPreview();
+        await Promise.all([loadImports(), loadMonth()]);
+    } catch (error) {
+        toast(error.message || "Nao foi possivel confirmar a importacao.", "error");
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = original;
+        }
+    }
+}
+
+function updateImportPreviewSelection() {
+    const rows = byId("import-preview-rows");
+    if (!rows) return;
+
+    const checks = Array.from(rows.querySelectorAll("[data-preview-importar]"));
+    const selected = checks.filter(check => check.checked).length;
+    const total = checks.length;
+
+    checks.forEach(check => {
+        const row = check.closest("tr");
+        row?.classList.toggle("is-skipped", !check.checked);
+    });
+
+    setText("import-preview-selected", selected);
+    setText("import-preview-action-summary", selected
+        ? `${selected} de ${total} linha(s) serao importadas.`
+        : "Nenhuma linha selecionada."
+    );
+
+    const button = byId("confirm-import-button");
+    if (button) button.disabled = selected === 0;
 }
 
 async function loadImports() {
@@ -1534,11 +1810,15 @@ function parcelaInfo(rec) {
     const startN = toN(rec.mesInicio);
     const endN   = toN(rec.mesFim);
     const nowN   = toN(state.month);
-    const total     = endN - startN + 1;
-    const elapsed   = Math.min(Math.max(nowN - startN + 1, 0), total);
-    const remaining = total - elapsed;
-    const pct       = total > 0 ? Math.round((elapsed / total) * 100) : 0;
-    return { total, elapsed, remaining, pct, saldoRestante: remaining * rec.valorCentavos };
+    const spanTotal = Math.max(endN - startN + 1, 1);
+    const total = Number(rec.parcelaTotal) || spanTotal;
+    const startInstallment = Number(rec.parcelaInicio) || 1;
+    const monthOffset = Math.min(Math.max(nowN - startN, 0), spanTotal - 1);
+    const current = Math.min(Math.max(startInstallment + monthOffset, 1), total);
+    const remaining = rec.status === "ATIVO" ? Math.max(total - current + 1, 0) : 0;
+    const paid = Math.max(total - remaining, 0);
+    const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+    return { total, elapsed: current, current, remaining, pct, saldoRestante: remaining * rec.valorCentavos };
 }
 
 function formatYearMonth(ym) {
@@ -1583,14 +1863,14 @@ async function requestAnteciparParcelamento(id) {
     const rec = state.parcelamentos.find(item => item.id === id);
     if (!rec) return;
 
-    const mesQuitacao = window.prompt("Mes de quitacao do parcelamento (AAAA-MM):", state.month);
-    if (!mesQuitacao) return;
-    if (!/^\d{4}-\d{2}$/.test(mesQuitacao)) {
-        toast("Informe o mes no formato AAAA-MM.", "error");
-        return;
-    }
+    const info = parcelaInfo(rec);
+    const mesQuitacao = state.month;
+    const saldo = info ? money(info.saldoRestante / 100) : money(0);
 
-    try {
+    setText("confirm-title", "Antecipar parcelamento?");
+    setText("confirm-message", `O parcelamento "${rec.descricao}" sera encerrado em ${formatYearMonth(mesQuitacao)} e as projecoes futuras restantes (${saldo}) serao removidas.`);
+    setText("confirm-action", "Antecipar parcelamento");
+    state.pendingConfirmation = async () => {
         await apiFetch(`${API.recorrencias}/${id}/antecipar`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -1598,9 +1878,8 @@ async function requestAnteciparParcelamento(id) {
         });
         toast("Parcelamento antecipado.");
         await Promise.all([loadCompromissos(), loadProjecoes()]);
-    } catch (error) {
-        toast(error.message || "Nao foi possivel antecipar o parcelamento.", "error");
-    }
+    };
+    byId("confirm-dialog")?.showModal();
 }
 
 function switchCompromissosTab(tab) {
@@ -1639,15 +1918,22 @@ async function saveRecorrenciaEdit(event) {
     const id     = byId("rec-edit-id").value;
     const button = byId("rec-edit-save");
     const orig   = button.innerHTML;
+    const original = state.recorrencias.concat(state.parcelamentos).find(r => r.id === Number(id));
     button.disabled = true;
     button.innerHTML = `<span class="spinner"></span> Salvando`;
 
     const payload = {
+        tipo:            original?.tipo || "GASTO_DIARIO",
         descricao:       byId("rec-edit-descricao").value.trim(),
         valorCentavos:   Math.round(parseMoney(byId("rec-edit-valor").value) * 100),
+        categoria:       original?.categoria || null,
+        observacao:      original?.observacao || null,
+        idLote:          original?.idLote || null,
         mesInicio:       byId("rec-edit-mes-inicio").value,
         mesFim:          nullIfBlank(byId("rec-edit-mes-fim").value),
         diaPreferencial: Number(byId("rec-edit-dia").value),
+        parcelaInicio:   original?.parcelaInicio || null,
+        parcelaTotal:    original?.parcelaTotal || null,
         frequencia:      byId("rec-edit-frequencia").value,
         status:          byId("rec-edit-status").value,
     };
@@ -1682,6 +1968,11 @@ function addMonths(month, offset) {
     const [year, value] = month.split("-").map(Number);
     const date = new Date(year, value - 1 + offset, 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+function monthsBetweenInclusive(start, end) {
+    const [startYear, startMonth] = start.split("-").map(Number);
+    const [endYear, endMonth] = end.split("-").map(Number);
+    return Math.max((endYear * 12 + endMonth) - (startYear * 12 + startMonth) + 1, 1);
 }
 function monthToDate(month) {
     const [year, value] = month.split("-").map(Number);

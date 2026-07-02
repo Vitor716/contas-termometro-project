@@ -2,6 +2,7 @@ package br.com.contastermometro.lancamentos.controller
 
 import br.com.contastermometro.lancamentos.dto.LancamentoRequest
 import br.com.contastermometro.lancamentos.dto.LancamentoResponse
+import br.com.contastermometro.lancamentos.dto.RemoverLancamentosRequest
 import br.com.contastermometro.lancamentos.service.LancamentosService
 import jakarta.validation.Valid
 import org.springframework.format.annotation.DateTimeFormat
@@ -36,7 +37,7 @@ class LancamentosController(
     }
 
     @GetMapping("/lotes/{idLote}")
-    fun listarImportacao(idLote: String) : ResponseEntity<List<LancamentoResponse>>{
+    fun listarImportacao(@PathVariable idLote: String) : ResponseEntity<List<LancamentoResponse>>{
         val importacao = lancamentosService.listarImportacao(idLote)
         return ResponseEntity.ok(importacao)
     }
@@ -53,6 +54,12 @@ class LancamentosController(
     @DeleteMapping("/{id}")
     fun remover(@PathVariable id: Long): ResponseEntity<Void> {
         lancamentosService.remover(id)
+        return ResponseEntity.noContent().build()
+    }
+
+    @DeleteMapping("/lote")
+    fun removerEmLote(@RequestBody request: RemoverLancamentosRequest): ResponseEntity<Void> {
+        lancamentosService.removerEmLote(request.ids)
         return ResponseEntity.noContent().build()
     }
 }

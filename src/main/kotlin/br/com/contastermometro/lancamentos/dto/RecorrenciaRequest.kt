@@ -10,9 +10,12 @@ data class RecorrenciaRequest(
     val valorCentavos: Long,
     val categoria: String? = null,
     val observacao: String? = null,
+    val idLote: String? = null,
     val mesInicio: String,
     val mesFim: String? = null,
     val diaPreferencial: Int,
+    val parcelaInicio: Int? = null,
+    val parcelaTotal: Int? = null,
     val frequencia: Frequencia,
     val status: StatusParcelamento
 )

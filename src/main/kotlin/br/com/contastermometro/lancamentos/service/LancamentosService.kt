@@ -10,5 +10,6 @@ interface LancamentosService {
 	fun listarPorMes(mesRaw: YearMonth): List<LancamentoResponse>
 	fun listarImportacao(idLote: String) : List<LancamentoResponse>
 	fun remover(id: Long)
+	fun removerEmLote(ids: List<Long>)
 	fun editar(id: Long, req: LancamentoRequest): LancamentoResponse
 }

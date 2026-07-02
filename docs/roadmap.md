@@ -332,7 +332,7 @@ Critérios de aceite:
 - parcela que quebra um mês futuro é rejeitada;
 - usuário consegue conferir os cálculos.
 
-## MVP 6 - Parcelas e compromissos futuros — ⬜
+## MVP 6 - Parcelas e compromissos futuros — ✅ 
 
 Objetivo: visualizar o que já está comprometido nos próximos meses.
 
@@ -355,7 +355,7 @@ Critérios de aceite:
 - consultor considera parcelas existentes.
 - consultor considera entradas e saidas fixas recorrentes ainda vigentes.
 
-## MVP 7 - Resumo anual — 🟡
+## MVP 7 - Resumo anual — ✅
 
 Objetivo: visualizar evolução de entradas, investimento e compromissos.
 

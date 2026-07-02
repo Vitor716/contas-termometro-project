@@ -27,13 +27,13 @@ cd contas-termometro-project
 Abrir:
 
 ```text
-http://localhost:8081
+http://localhost:17321
 ```
 
 Verificar a API:
 
 ```powershell
-Invoke-RestMethod http://localhost:8081/api/sistema/saude
+Invoke-RestMethod http://localhost:17321/api/sistema/saude
 ```
 
 ## Banco de dados

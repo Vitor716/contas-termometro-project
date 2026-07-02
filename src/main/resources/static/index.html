@@ -55,6 +55,10 @@
                 <svg aria-hidden="true"><use href="#icon-sliders"></use></svg>
                 Configurações
             </button>
+            <button class="nav-item" :class="{ 'is-active': view === 'backups' }" @click="navigate('backups')" type="button">
+                <svg aria-hidden="true"><use href="#icon-download"></use></svg>
+                Backups
+            </button>
         </nav>
 
         <div class="sidebar-future">
@@ -490,6 +494,83 @@
             </div>
 
             <!-- ═══════════════ CONFIGURAÇÕES ═══════════════ -->
+            <div id="backups-content" class="view" :class="{ 'is-active': view === 'backups' }">
+                <div class="page-heading">
+                    <div>
+                        <p class="eyebrow">Portabilidade</p>
+                        <h1>Backups <span>Locais</span></h1>
+                        <p>Exporte uma copia criptografada do banco ou restaure seus dados em uma instalacao local.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="secondary-button" id="backup-refresh" type="button" aria-label="Atualizar dados">
+                            <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="backup-grid">
+                    <section class="panel backup-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Banco local</h2>
+                                <small>Caminho, tamanho e versao usados nesta instalacao.</small>
+                            </div>
+                        </div>
+                        <div id="backup-info" class="backup-info">
+                            <div class="loading-panel"><span class="spinner"></span> Carregando...</div>
+                        </div>
+                    </section>
+
+                    <section class="panel backup-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Exportar backup</h2>
+                                <small>Gera um arquivo .ctbackup criptografado por senha.</small>
+                            </div>
+                        </div>
+                        <form id="backup-export-form" class="backup-form">
+                            <label class="field">
+                                <span>Senha do backup</span>
+                                <input id="backup-export-password" type="password" minlength="8" autocomplete="new-password" required>
+                                <small class="field-hint">Guarde esta senha fora do Git. Sem ela o arquivo nao pode ser restaurado.</small>
+                            </label>
+                            <button id="backup-export-button" class="primary-button full-width" type="submit">
+                                <svg aria-hidden="true"><use href="#icon-download"></use></svg>
+                                Baixar backup criptografado
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="panel backup-panel restore-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Restaurar backup</h2>
+                                <small>A versao do banco e validada antes da restauracao.</small>
+                            </div>
+                        </div>
+                        <form id="backup-restore-form" class="backup-form">
+                            <label class="field backup-file-field">
+                                <span>Arquivo .ctbackup</span>
+                                <input id="backup-file" type="file" accept=".ctbackup">
+                                <small id="backup-file-name" class="field-hint">Nenhum arquivo selecionado</small>
+                            </label>
+                            <label class="field">
+                                <span>Senha do backup</span>
+                                <input id="backup-restore-password" type="password" minlength="8" autocomplete="current-password" required>
+                            </label>
+                            <div class="import-warning">
+                                <svg aria-hidden="true"><use href="#icon-info"></use></svg>
+                                <p><strong>Atencao:</strong> os dados atuais serao substituidos. O sistema cria um backup automatico antes de restaurar.</p>
+                            </div>
+                            <button id="backup-restore-button" class="danger-button full-width" type="submit">
+                                <svg aria-hidden="true"><use href="#icon-upload"></use></svg>
+                                Restaurar backup
+                            </button>
+                        </form>
+                    </section>
+                </div>
+            </div>
+
             <div id="metas-content" class="view" :class="{ 'is-active': view === 'metas' }">
                 <div class="page-heading">
                     <div>
@@ -1009,6 +1090,7 @@
     <symbol id="icon-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></symbol>
     <symbol id="icon-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/></symbol>
     <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v5h14v-5"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0 5-5m-5 5-5-5M5 20h14"/></symbol>
     <symbol id="icon-spark" viewBox="0 0 24 24"><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3Z"/></symbol>
     <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/></symbol>
     <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>

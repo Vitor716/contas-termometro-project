@@ -1,137 +1,94 @@
-# Backup, versionamento e sincronização
+# Backup, versionamento e sincronizacao
 
-## Três necessidades diferentes
+## O que existe no MVP 11
 
-### Backup
+A aplicacao possui uma tela `Backups` no menu lateral.
 
-Recuperar os dados depois de perda ou corrupção.
+Ela permite:
 
-### Versionamento
+- ver o caminho do banco SQLite local, tamanho, data de atualizacao e versao do schema;
+- exportar um arquivo `.ctbackup` criptografado por senha;
+- restaurar um `.ctbackup` validando formato, checksum e versao do banco;
+- criar automaticamente um snapshot do banco atual antes de restaurar.
 
-Recuperar estados anteriores e saber quando um snapshot foi criado.
+O arquivo `.ctbackup` e o unico formato recomendado para mover dados entre computadores. Ele contem um snapshot SQLite consistente gerado por `VACUUM INTO`, um manifesto tecnico e criptografia local com AES-GCM.
 
-### Sincronização
+## Exportar
 
-Editar em mais de um computador e propagar mudanças automaticamente.
+1. Abra `http://localhost:17321`.
+2. Entre em `Backups`.
+3. Informe uma senha com pelo menos 8 caracteres.
+4. Clique em `Baixar backup criptografado`.
+5. Guarde o arquivo `.ctbackup` e a senha em locais separados.
 
-Não tratar os três como o mesmo problema.
+Sem a senha, o backup nao pode ser restaurado.
 
-## Recomendação atual
+## Restaurar no mesmo computador
 
-Usar SQLite local e gerar backups criptografados. Versionar esses backups em um repositório GitHub privado separado é aceitável se a criptografia acontecer antes do `git add`.
+1. Entre em `Backups`.
+2. Selecione um arquivo `.ctbackup`.
+3. Informe a senha usada na exportacao.
+4. Clique em `Restaurar backup`.
+5. Confirme a acao.
 
-Firebase deve entrar apenas quando a sincronização automática justificar autenticação, regras, conflitos e nova persistência.
+Antes da restauracao, a aplicacao cria uma copia automatica do estado atual em `backups-automaticos`, ao lado do banco SQLite.
 
-## GitHub sem vazamento de conteúdo
+## Migrar para outro computador Windows
 
-### O que nunca fazer
+No computador antigo:
+
+1. Execute a aplicacao normalmente.
+2. Exporte um `.ctbackup` pela tela `Backups`.
+3. Copie o `.ctbackup` para um pendrive, pasta segura ou repositorio privado de backups.
+4. Nao copie `contas-termometro.db` aberto para Git ou nuvem.
+
+No computador novo:
+
+1. Clone o projeto.
+2. Instale o JDK 21+.
+3. Execute:
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+4. Abra `http://localhost:17321`.
+5. Entre em `Backups`.
+6. Restaure o arquivo `.ctbackup` usando a senha.
+
+Se a versao do schema do backup for diferente da versao da aplicacao, a restauracao e bloqueada. Atualize o projeto no computador novo para a mesma versao antes de tentar novamente.
+
+## GitHub privado
+
+GitHub pode ser usado somente como destino de arquivos ja criptografados.
+
+Pode versionar:
+
+```powershell
+git add contas-termometro-20260702-130000.ctbackup
+```
+
+Nunca versionar:
 
 ```powershell
 git add contas-termometro.db
-git add exportacao.csv
+git add extrato.csv
 git add backup.json
 ```
 
-Mesmo em repositório privado, o histórico pode permanecer após remoção comum.
+Use um repositorio privado separado do codigo, com MFA habilitado. Mesmo privado, o GitHub nao deve receber banco aberto, CSV, JSON financeiro ou chave/senha.
 
-### Fluxo seguro
+## Retencao sugerida
 
-1. fechar a aplicação ou criar snapshot consistente;
-2. copiar o banco para uma pasta temporária;
-3. compactar;
-4. criptografar localmente;
-5. verificar que o arquivo não pode ser aberto sem chave;
-6. adicionar somente o arquivo criptografado;
-7. enviar para repositório privado de backups;
-8. restaurar um backup de teste periodicamente.
+Para uso pessoal:
 
-Exemplo conceitual com `age` usando senha:
+- manter os ultimos 7 backups diarios;
+- manter 1 backup por mes dos ultimos 12 meses;
+- manter 1 backup anual;
+- testar restauracao depois de grandes alteracoes.
 
-```powershell
-Compress-Archive .\contas-termometro.db .\contas-termometro.zip
-age -p -o .\contas-termometro.zip.age .\contas-termometro.zip
-Remove-Item .\contas-termometro.zip
-```
+## Sincronizacao
 
-Preferir chave assimétrica:
+Este MVP entrega portabilidade e backup. Ele nao implementa edicao simultanea em dois computadores.
 
-```powershell
-age-keygen -o "$HOME\.contas-termometro\backup-key.txt"
-age-keygen -y "$HOME\.contas-termometro\backup-key.txt"
-age -r <CHAVE_PUBLICA> -o backup.db.age contas-termometro.db
-```
-
-A chave privada deve ter uma segunda cópia em gerenciador de senhas ou mídia segura. Perder a chave significa perder os backups.
-
-### Repositório de backup
-
-- privado;
-- separado do código;
-- sem GitHub Actions que processem o conteúdo;
-- MFA habilitado;
-- branch única;
-- retenção mensal/anual;
-- arquivos abertos bloqueados por `.gitignore` e hook de pre-commit.
-
-### Limitação
-
-Criptografia gera arquivos binários diferentes em cada execução. O Git não consegue produzir diffs úteis e o repositório cresce. Para um projeto pessoal, manter snapshots mensais e os últimos backups diários é mais adequado que commit a cada alteração.
-
-## Firebase Firestore
-
-### Quando faz sentido
-
-- uso frequente em mais de um computador;
-- necessidade de sincronização automática;
-- login do usuário;
-- possível evolução para mobile;
-- dados representados como documentos, não como arquivo SQLite.
-
-### Modelo
-
-Cada entidade recebe:
-
-```text
-id global
-usuarioId
-criadoEm
-atualizadoEm
-versao
-excluidoEm
-```
-
-O backend sincroniza mudanças e trata conflitos. Uma estratégia simples é bloquear edição concorrente usando `versao`, em vez de aceitar silenciosamente “última gravação vence”.
-
-### Segurança mínima
-
-- Firebase Authentication;
-- documentos sempre sob o UID;
-- Security Rules testadas;
-- nenhuma credencial administrativa no navegador;
-- App Check como proteção adicional, não substituto da autenticação;
-- exportação local periódica, porque o free tier não inclui backup/restauração gerenciados.
-
-### Privacidade
-
-Firestore é cloud. Mesmo com regras corretas, os dados deixam o computador. Para um sistema financeiro pessoal, isso precisa ser uma opção explícita.
-
-## Comparação
-
-| Critério | SQLite local | GitHub + arquivo criptografado | Firestore |
-|---|---|---|---|
-| Custo obrigatório | Não | Não | Não dentro da cota atual |
-| Funciona offline | Sim | Uso local sim | Cache possível, sincronização exige internet |
-| Histórico | Backup manual | Sim, por snapshot | Precisa ser implementado |
-| Sincronização | Não | Manual | Sim |
-| Complexidade | Baixa | Média | Alta |
-| Dados em cloud | Não | Somente cifrados | Sim |
-| Consultas remotas | Não | Não | Sim |
-| Recuperação | Copiar banco | Descriptografar snapshot | Exportação própria no free tier |
-
-## Fases sugeridas
-
-1. exportar/importar backup local;
-2. criptografar/descriptografar;
-3. publicar backup criptografado no GitHub;
-4. automatizar retenção e teste de restauração;
-5. reavaliar Firebase quando houver segundo dispositivo em uso recorrente.
+Firebase/Firestore continua adiado ate existir necessidade real de sincronizacao automatica entre dispositivos. Se entrar no futuro, deve ser modelado por entidades e regras de seguranca, nao como upload aberto do SQLite.

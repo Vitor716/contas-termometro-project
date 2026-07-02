@@ -1,5 +1,6 @@
 package br.com.contastermometro.shared.handler
 
+import br.com.contastermometro.backup.BackupException
 import br.com.contastermometro.shared.LancamentoNaoEncontradoException
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
@@ -61,4 +62,17 @@ class GlobalExceptionHandler {
 
         return problemDetail
     }
+
+    @ExceptionHandler(BackupException::class)
+    fun handleBackupException(
+        ex: BackupException,
+        request: HttpServletRequest
+    ): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST,
+            ex.message ?: "Nao foi possivel processar o backup."
+        ).apply {
+            title = "Backup invalido"
+            instance = URI.create(request.requestURI)
+        }
 }

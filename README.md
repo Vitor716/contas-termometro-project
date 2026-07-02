@@ -24,7 +24,69 @@ Este repositorio nasce como um molde de projeto real, ainda simples, mas com dec
 - `consultor`: respostas para "posso comprar?" e simulacoes.
 - `compartilhado`: contratos e tipos compartilhados de baixo acoplamento.
 
-## Rodando localmente
+## Uso rapido no Windows
+
+Modo mais simples, para usar como um link:
+
+```powershell
+.\instalar-link.bat
+```
+
+Esse comando gera a aplicacao, cria o atalho `Contas Termometro` na area de trabalho e configura o Windows para iniciar o servidor local quando voce entrar no sistema.
+
+Depois disso, basta clicar em `Contas Termometro.url`. O link usa o protocolo local:
+
+```text
+contas-termometro://abrir
+```
+
+Na primeira vez, o navegador pode pedir confirmacao para abrir o app local. Confirme para iniciar o servidor e abrir a interface.
+
+Com o servidor ja ativo, tambem funciona abrir direto:
+
+```text
+http://localhost:17321
+```
+
+Primeira configuracao:
+
+```powershell
+.\configurar.bat
+```
+
+Abrir a aplicacao:
+
+```powershell
+.\usar.bat
+```
+
+Ver se esta rodando e qual banco esta usando:
+
+```powershell
+.\status.bat
+```
+
+Parar a aplicacao:
+
+```powershell
+.\parar.bat
+```
+
+Remover o inicio automatico:
+
+```powershell
+.\desinstalar-link.bat
+```
+
+Enviar alteracoes de codigo para o GitHub:
+
+```powershell
+.\subir-codigo.bat -Mensagem "descreva a alteracao"
+```
+
+O script de envio roda testes, prepara os arquivos, bloqueia dados locais sensiveis (`.db`, `.ctbackup`, `logs`, `data`, `backups-automaticos`) e faz `commit` + `push` na branch atual.
+
+## Rodando localmente manualmente
 
 Pre-requisitos:
 
@@ -36,16 +98,18 @@ Com o Gradle Wrapper:
 .\gradlew.bat bootRun
 ```
 
+Use esse modo quando quiser ver os logs da aplicacao no terminal.
+
 Endpoint inicial:
 
 ```bash
-curl http://localhost:8081/api/sistema/saude
+curl http://localhost:17321/api/sistema/saude
 ```
 
 Interface local:
 
 ```text
-http://localhost:8081
+http://localhost:17321
 ```
 
 ## Proximos passos

@@ -9,9 +9,12 @@ out/
 
 logs/
 *.log
+.app.pid
 
 data/
 backups/
+backups-automaticos/
 *.db
 *.sqlite
 *.sqlite3
+*.ctbackup

@@ -8,10 +8,11 @@ const API = {
     termometro:   "/api/configuracao/termometro",
     snapshot:     "/api/configuracoes/termometros/snapshots",
     projecoes:    "/api/projecoes",
-    consultor:    "/api/consultor"
+    consultor:    "/api/consultor",
+    backups:      "/api/backups"
 };
 
-const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas", "compromissos", "projecoes", "consultor"]);
+const VIEWS = new Set(["dashboard", "lancamentos", "anual", "importacao", "metas", "compromissos", "projecoes", "consultor", "backups"]);
 
 const TYPE_META = {
     ENTRADA:     { label: "Entrada",      className: "income",     icon: "icon-arrow-down", sign:  1 },
@@ -34,6 +35,8 @@ const state = {
     parcelamentos: [],
     projecoes: [],
     consultorResultado: null,
+    backupInfo: null,
+    selectedBackupFile: null,
     selectedFile: null,
     selectedEntryIds: new Set(),
     importAbortController: null,
@@ -65,6 +68,7 @@ document.addEventListener("alpine:init", () => {
                 if (this.view === "compromissos")   loadCompromissos();
                 if (this.view === "projecoes")      loadProjecoes();
                 if (this.view === "consultor")      syncConsultorMonth();
+                if (this.view === "backups")        loadBackupInfo();
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
         },
@@ -119,6 +123,7 @@ function init() {
     bindEntryForm();
     bindEntryFilters();
     bindImport();
+    bindBackups();
     bindAnnual();
     bindConfirmation();
     bindMetaForm();
@@ -1470,6 +1475,166 @@ function requestImportDeletion(idLote) {
 }
 
 /* ── Health Check ──────────────────────────────────────────── */
+/* Backup */
+function bindBackups() {
+    byId("backup-export-form")?.addEventListener("submit", exportBackup);
+    byId("backup-restore-form")?.addEventListener("submit", requestBackupRestore);
+    byId("backup-file")?.addEventListener("change", event => selectBackupFile(event.target.files[0]));
+    byId("backup-refresh")?.addEventListener("click", loadBackupInfo);
+}
+
+async function loadBackupInfo() {
+    const container = byId("backup-info");
+    if (container) container.innerHTML = `<div class="loading-panel"><span class="spinner"></span> Carregando...</div>`;
+
+    try {
+        state.backupInfo = await apiFetch(`${API.backups}/info`);
+        renderBackupInfo();
+    } catch (error) {
+        if (container) {
+            container.innerHTML = `<div class="empty-state"><p>${escapeHtml(error.message || "Nao foi possivel carregar os dados do banco.")}</p></div>`;
+        }
+    }
+}
+
+function renderBackupInfo() {
+    const container = byId("backup-info");
+    const info = state.backupInfo;
+    if (!container || !info) return;
+
+    container.innerHTML = `
+        <div class="backup-info-row"><span>Banco</span><strong>${escapeHtml(info.caminhoBanco)}</strong></div>
+        <div class="backup-info-row"><span>Status</span><strong>${info.bancoExiste ? "Encontrado" : "Nao encontrado"}</strong></div>
+        <div class="backup-info-row"><span>Tamanho</span><strong>${formatFileSize(Number(info.tamanhoBytes || 0))}</strong></div>
+        <div class="backup-info-row"><span>Atualizado</span><strong>${escapeHtml(formatDateTime(info.atualizadoEm))}</strong></div>
+        <div class="backup-info-row"><span>Schema</span><strong>V${escapeHtml(info.schemaVersion)}</strong></div>
+        <div class="backup-info-row"><span>Backups automaticos</span><strong>${escapeHtml(info.diretorioBackupsAutomaticos)}</strong></div>
+    `;
+}
+
+async function exportBackup(event) {
+    event.preventDefault();
+    const senha = byId("backup-export-password")?.value || "";
+    const button = byId("backup-export-button");
+    if (senha.length < 8) {
+        toast("Use uma senha com pelo menos 8 caracteres.", "error");
+        return;
+    }
+
+    const original = button?.innerHTML || "";
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner"></span> Exportando`;
+    }
+
+    try {
+        const response = await fetch(`${API.backups}/exportar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ senha })
+        });
+        if (!response.ok) throw new Error(await readErrorMessage(response));
+        const blob = await response.blob();
+        const filename = filenameFromDisposition(response.headers.get("content-disposition")) || "contas-termometro.ctbackup";
+        downloadBlob(blob, filename);
+        byId("backup-export-password").value = "";
+        toast("Backup exportado.");
+        await loadBackupInfo();
+    } catch (error) {
+        toast(error.message || "Nao foi possivel exportar o backup.", "error");
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = original;
+        }
+    }
+}
+
+function selectBackupFile(file) {
+    if (file && !file.name.toLowerCase().endsWith(".ctbackup")) {
+        toast("Escolha um arquivo .ctbackup.", "error");
+        byId("backup-file").value = "";
+        state.selectedBackupFile = null;
+        return;
+    }
+    state.selectedBackupFile = file || null;
+    setText("backup-file-name", file ? `${file.name} (${formatFileSize(file.size)})` : "Nenhum arquivo selecionado");
+}
+
+function requestBackupRestore(event) {
+    event.preventDefault();
+    if (!state.selectedBackupFile) {
+        toast("Selecione um arquivo .ctbackup.", "error");
+        return;
+    }
+    const senha = byId("backup-restore-password")?.value || "";
+    if (senha.length < 8) {
+        toast("Informe a senha usada na exportacao.", "error");
+        return;
+    }
+
+    setText("confirm-title", "Restaurar backup?");
+    setText("confirm-message", "Os dados atuais serao substituidos. Um backup automatico sera criado antes da restauracao.");
+    setText("confirm-action", "Restaurar");
+    state.pendingConfirmation = () => restoreBackup(senha);
+    byId("confirm-dialog")?.showModal();
+}
+
+async function restoreBackup(senha) {
+    const button = byId("backup-restore-button");
+    const original = button?.innerHTML || "";
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner"></span> Restaurando`;
+    }
+
+    const data = new FormData();
+    data.append("file", state.selectedBackupFile);
+    data.append("senha", senha);
+
+    try {
+        const result = await apiFetch(`${API.backups}/restaurar`, {
+            method: "POST",
+            body: data
+        });
+        byId("backup-restore-password").value = "";
+        byId("backup-file").value = "";
+        selectBackupFile(null);
+        toast(result.mensagem || "Backup restaurado.");
+        await Promise.all([loadBackupInfo(), loadMonth(), loadAnnual()]);
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = original;
+        }
+    }
+}
+
+async function readErrorMessage(response) {
+    try {
+        const body = await response.json();
+        return body.detail || body.message || body.title || `Erro ${response.status}`;
+    } catch {
+        return (await response.text()) || `Erro ${response.status}`;
+    }
+}
+
+function filenameFromDisposition(disposition) {
+    const match = /filename="?([^"]+)"?/i.exec(disposition || "");
+    return match ? match[1] : null;
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
 async function checkHealth() {
     const status = byId("connection-status");
     try {
@@ -2055,6 +2220,13 @@ function formatDate(value) {
     if (!value) return "—";
     const [year, month, day] = value.split("-").map(Number);
     return dateFormatter.format(new Date(year, month - 1, day)).replace(".", "");
+}
+function formatDateTime(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short"
+    }).format(new Date(value));
 }
 function formatFileSize(bytes) {
     if (bytes < 1024) return `${bytes} bytes`;

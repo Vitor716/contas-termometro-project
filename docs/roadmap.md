@@ -406,7 +406,7 @@ Estado atual: a interface consolida os 12 meses usando o resumo mensal e possui 
 - percentuais anuais usam totais do ano;
 - ADR relacionada: [ADR 0013](adrs/0013-resumo-anual-calculado-no-backend.md).
 
-## MVP 8 - Importação CSV inteligente — 🧪
+## MVP 8 - Importação CSV inteligente — ✅
 
 Objetivo: importar com revisão, detectar parcelas, duplicidades e recorrências.
 
@@ -536,7 +536,7 @@ Critérios de aceite:
 - se o usuário não tiver histórico suficiente (ex: conta nova), a IA ou o Backend devem usar um fallback com os cálculos estáticos padrão (ex: 6x o custo de vida informado manualmente);
 - nenhuma descrição real de lançamento (ex: "Mercado Zezinho") trafega para o modelo remoto (Gemini/GitHub Models), apenas agregações (ex: "gastoDiarioMedio: 1500.00").
 
-## MVP 11 - Backup, versionamento e portabilidade — ⬜
+## MVP 11 - Backup, versionamento e portabilidade — ✅
 
 Objetivo: abrir o sistema em outro computador com segurança.
 
@@ -552,6 +552,24 @@ Entregáveis:
 - documentação de migração entre computadores;
 - documentação `docs/backup-e-sincronizacao.md`;
 - reavaliar Firestore somente para sincronização entre dispositivos.
+
+### Implementado
+
+- tela `Backups` no frontend local;
+- endpoint de informação do banco local;
+- exportação `.ctbackup` com snapshot SQLite consistente;
+- criptografia local por senha antes de salvar o arquivo;
+- manifesto com versão de formato, schema e checksum;
+- restauração com validação de formato, schema e integridade;
+- backup automático local antes da restauração;
+- documentação de migração entre computadores Windows.
+
+### Fora do MVP atual
+
+- push automático para GitHub;
+- política automatizada de retenção;
+- sincronização multi-dispositivo;
+- Firestore.
 
 Critérios de aceite:
 

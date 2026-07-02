@@ -6,7 +6,7 @@ Usage (PowerShell):
   python .\scripts\seed_api.py
 
 Options:
-  --base-url URL     Base URL of the API (default: http://localhost:8081)
+  --base-url URL     Base URL of the API (default: http://localhost:17321)
   --skip-duplicates  Skip inserting entries that appear already for the reference month
 
 This script posts a small set of example `lancamentos` to POST /api/lancamentos
@@ -20,7 +20,7 @@ from typing import List
 import requests
 
 
-DEFAULT_BASE = "http://localhost:8081"
+DEFAULT_BASE = "http://localhost:17321"
 
 
 def health_check(session: requests.Session, base_url: str) -> bool:

@@ -48,7 +48,10 @@ const monthFormatter   = new Intl.DateTimeFormat("pt-BR", { month: "long", year:
 const dateFormatter    = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
 
 /* ── Alpine Shell ──────────────────────────────────────────── */
+/* ── Alpine Shell ──────────────────────────────────────────── */
 document.addEventListener("alpine:init", () => {
+
+    // 1. COMPONENTE ORIGINAL (Não pode ser apagado, controla o menu e as telas)
     Alpine.data("appShell", () => ({
         view: "dashboard",
         sidebarOpen: false,
@@ -74,6 +77,33 @@ document.addEventListener("alpine:init", () => {
         showAllEntries() {
             window.dispatchEvent(new CustomEvent("app:filter-entries", { detail: { type: "", label: "" } }));
             this.navigate("lancamentos");
+        }
+    }));
+
+    // 2. NOVO COMPONENTE (Para a formatação em Reais)
+    Alpine.data("mascaraMoeda", () => ({
+        valorLimpo: "",
+        valorFormatado: "",
+
+        mascarar(event) {
+            let apenasDigitos = event.target.value.replace(/\D/g, "");
+            this.formatar(apenasDigitos);
+        },
+
+        formatar(digitos) {
+            if (!digitos || digitos === "0") {
+                this.valorFormatado = "";
+                this.valorLimpo = "";
+                return;
+            }
+
+            const valorDecimal = parseInt(digitos, 10) / 100;
+            this.valorLimpo = valorDecimal.toFixed(2);
+
+            this.valorFormatado = new Intl.NumberFormat("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(valorDecimal);
         }
     }));
 });
@@ -831,15 +861,31 @@ function renderEntries() {
     tbody.innerHTML = filtered.map(entry => {
         const meta = typeMeta(entry.tipo);
         const isRecorrente = entry.recorrenciaId && !entry.recorrenciaExcecao;
-        const badge = isRecorrente ? `<span class="badge-recorrente" title="Recorrente">${icon("icon-refresh")}</span>` : "";
+
+        // 1. Cria o badge do ícone condicionalmente
+        const badgeRecorrente = isRecorrente ? `
+            <span class="badge-recorrente tooltip-trigger" 
+                  aria-label="Lançamento gerado por uma recorrência" 
+                  data-tooltip="Lançamento recorrente">
+                <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
+            </span>
+        ` : "";
+
         const checked = state.selectedEntryIds.has(entry.id) ? "checked" : "";
+
+        // 2. Retorna a linha completa, já com a nova estrutura da Descrição embutida
         return `<tr>
             <td class="select-column" data-label="Selecionar"><input class="entry-select-check" type="checkbox" data-select-entry="${entry.id}" ${checked} aria-label="Selecionar ${escapeHtml(entry.descricao)}"></td>
             <td data-label="Data">${formatDate(entry.data)}</td>
-            <td class="table-description" data-label="Descricao">
-                <strong>${escapeHtml(entry.descricao)}</strong>${badge}
+            
+            <td class="table-description" data-label="Descrição">
+                <div class="description-header">
+                    <strong>${escapeHtml(entry.descricao)}</strong>
+                    ${badgeRecorrente}
+                </div>
                 <small>${escapeHtml(entry.observacao || "")}</small>
             </td>
+            
             <td data-label="Tipo"><span class="type-badge ${meta.className}">${meta.label}</span></td>
             <td data-label="Categoria">${escapeHtml(entry.categoria || "-")}</td>
             <td class="amount-column" data-label="Valor"><strong class="${meta.className}">${entrySign(entry)}${money(entry.valor)}</strong></td>

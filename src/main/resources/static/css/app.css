@@ -1489,3 +1489,87 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(4px); }
     .import-review-actions { align-items: stretch; flex-direction: column; }
     .import-review-actions .primary-button { width: 100%; }
 }
+
+/* Container do título e do badge para mantê-los alinhados */
+.description-header {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Espaçamento consistente entre o texto e o ícone */
+}
+
+/* Otimização do Badge de Recorrência */
+.badge-recorrente {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue); /* Usando a cor de acento já existente */
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    cursor: help; /* Indica que há uma informação extra ali */
+}
+
+.badge-recorrente:hover {
+    opacity: 1;
+}
+
+.badge-recorrente svg {
+    width: 13px;
+    height: 13px;
+    transition: transform 0.2s ease; /* Transição de movimento agora fica no SVG */
+}
+
+/* Tooltip CSS Puro (Acessível e Leve) */
+.tooltip-trigger {
+    position: relative;
+}
+
+.badge-recorrente:hover svg {
+    transform: rotate(30deg);
+}
+
+.tooltip-trigger::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 150%;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    padding: 6px 10px;
+    background: var(--surface-muted);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+/* Setinha do tooltip */
+.tooltip-trigger::before {
+    content: "";
+    position: absolute;
+    bottom: 150%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    border: 4px solid transparent;
+    border-top-color: var(--line);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 11;
+}
+
+.tooltip-trigger:hover::after,
+.tooltip-trigger:hover::before,
+.tooltip-trigger:focus-visible::after,
+.tooltip-trigger:focus-visible::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}

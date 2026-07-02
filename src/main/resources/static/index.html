@@ -863,7 +863,29 @@
 
         <div class="form-grid">
             <label class="field field-wide"><span>Descrição</span><input id="entry-description" name="descricao" required maxlength="120" placeholder="Ex.: Salário, aluguel, mercado"></label>
-            <label class="field"><span>Valor</span><div class="money-input"><i>R$</i><input id="entry-value" name="valor" required inputmode="decimal" placeholder="0,00"></div></label>
+            <label class="field" x-data="mascaraMoeda()">
+                <span>Valor</span>
+                <div class="money-input">
+                    <i>R$</i>
+
+                    <input
+                            type="text"
+                            inputmode="numeric"
+                            placeholder="0,00"
+                            x-model="valorFormatado"
+                            @input="mascarar($event)"
+                            autocomplete="off"
+                            required
+                    >
+
+                    <input
+                            id="entry-value"
+                            name="valor"
+                            type="hidden"
+                            x-model="valorLimpo"
+                    >
+                </div>
+            </label>
             <label class="field"><span>Data</span><input id="entry-date" name="data" type="date" required></label>
             <!-- Categoria oculta automaticamente quando for parcelamento -->
             <label class="field" x-show="!isParcelado">

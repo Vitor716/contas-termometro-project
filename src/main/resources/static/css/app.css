@@ -1494,6 +1494,17 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(4px); }
 .import-review-description strong, .import-review-description small { display: block; }
 .import-review-description strong { color: var(--ink); font-size: 12px; line-height: 1.3; }
 .import-review-description small { margin-top: 3px; color: var(--ink-soft); font-size: 10px; }
+.import-review-description-input {
+    width: min(260px, 100%);
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface-muted);
+    color: var(--ink);
+    font-size: 12px;
+}
+.import-review-description-input:focus { border-color: var(--green); outline: none; }
 .import-review-value { color: var(--ink); font-weight: 800; white-space: nowrap; }
 .import-review-category {
     min-width: 150px;

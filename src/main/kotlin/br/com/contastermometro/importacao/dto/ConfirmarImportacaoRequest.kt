@@ -7,5 +7,6 @@ data class ConfirmarImportacaoRequest(
 data class LinhaImportacaoRevisadaRequest(
     val id: Long,
     val categoria: String,
+    val descricao: String? = null,
     val importar: Boolean = true,
 )

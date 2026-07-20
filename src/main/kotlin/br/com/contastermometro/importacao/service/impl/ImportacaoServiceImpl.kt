@@ -108,12 +108,13 @@ class ImportacaoServiceImpl(
 
             val data = LocalDate.parse(linha.data)
             val categoriaFinal = revisao.categoria.ifBlank { linha.categoriaSugerida ?: "Cartao Nubank" }
+            val descricaoFinal = revisao.descricao?.trim()?.takeIf { it.isNotBlank() } ?: linha.descricaoLimpa
             lancamentosService.criar(
                 LancamentoRequest(
                     tipo = tipoLancamento(categoriaFinal),
                     idLote = loteId,
                     descricao = descricaoParaLancamento(
-                        linha.descricaoLimpa,
+                        descricaoFinal,
                         linha.isParcelamento,
                         linha.parcelaAtual,
                         linha.parcelaTotal
@@ -129,7 +130,7 @@ class ImportacaoServiceImpl(
             if (linha.isParcelamento && categoriaFinal == "PARCELAMENTO") {
                 linhasConfirmadas.add(
                     LinhaConfirmadaParcelamento(
-                        descricaoLimpa = linha.descricaoLimpa,
+                        descricaoLimpa = descricaoFinal,
                         valorCentavos = linha.valorCentavos,
                         data = data,
                         loteId = loteId,

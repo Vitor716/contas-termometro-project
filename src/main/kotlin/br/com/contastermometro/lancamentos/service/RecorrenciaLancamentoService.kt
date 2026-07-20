@@ -14,4 +14,5 @@ interface RecorrenciaLancamentoService {
     fun editar(id: Long, request: RecorrenciaRequest): RecorrenciaResponse
     fun cancelar(id: Long, request: CancelarRecorrenciaRequest): RecorrenciaResponse
     fun antecipar(id: Long, request: AnteciparParcelamentoRequest): RecorrenciaResponse
+    fun remover(id: Long)
 }

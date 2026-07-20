@@ -1449,7 +1449,7 @@ function renderImportPreview() {
         return;
     }
 
-    setText("import-preview-summary", "Revise categorias, desmarque duplicidades e confirme apenas as linhas corretas.");
+    setText("import-preview-summary", "Revise nomes, categorias, desmarque duplicidades e confirme apenas as linhas corretas.");
     setText("import-preview-lote", preview.loteId);
     setText("import-preview-total", preview.linhas?.length || 0);
     setText("import-preview-duplicates", (preview.linhas || []).filter(linha => linha.isDuplicidade).length);
@@ -1466,7 +1466,8 @@ function renderImportPreview() {
             <td data-label="Importar"><input class="import-review-check" type="checkbox" data-preview-importar="${linha.id}" ${checked}></td>
             <td class="import-review-date" data-label="Data">${escapeHtml(formatDate(linha.data))}</td>
             <td class="import-review-description" data-label="Descricao">
-                <strong>${escapeHtml(linha.descricaoLimpa)}</strong>
+                <label class="sr-only" for="import-description-${linha.id}">Descricao</label>
+                <input id="import-description-${linha.id}" class="import-review-description-input" data-preview-descricao="${linha.id}" value="${escapeHtml(linha.descricaoLimpa)}" maxlength="120">
                 ${linha.descricaoOriginal && linha.descricaoOriginal !== linha.descricaoLimpa ? `<small>Original: ${escapeHtml(linha.descricaoOriginal)}</small>` : ""}
             </td>
             <td class="import-review-value" data-label="Valor">${money(Number(linha.valor || 0))}</td>
@@ -1522,6 +1523,7 @@ async function confirmarImportacao() {
     const linhas = (preview.linhas || []).map(linha => ({
         id: linha.id,
         categoria: rows?.querySelector(`[data-preview-categoria="${linha.id}"]`)?.value || linha.categoriaSugerida || "Cartao Nubank",
+        descricao: rows?.querySelector(`[data-preview-descricao="${linha.id}"]`)?.value?.trim() || linha.descricaoLimpa,
         importar: Boolean(rows?.querySelector(`[data-preview-importar="${linha.id}"]`)?.checked)
     }));
 
@@ -2142,6 +2144,7 @@ function renderParcelamentoCard(r) {
                 <div class="comp-actions-right">
                     <button class="secondary-button sm" type="button" data-edit-recorrencia="${r.id}">Editar</button>
                     <button class="danger-button sm" type="button" data-cancel-recorrencia="${r.id}">Cancelar</button>
+                    <button class="danger-button sm" type="button" data-delete-parcelamento="${r.id}">Excluir</button>
                 </div>
             </div>
         </div>`;
@@ -2168,6 +2171,7 @@ function renderParcelamentoCard(r) {
             <div class="comp-actions-right">
                 <button class="secondary-button sm" type="button" data-edit-recorrencia="${r.id}">Editar</button>
                 <button class="secondary-button sm" type="button" data-antecipar-parcelamento="${r.id}">Antecipar</button>
+                <button class="danger-button sm" type="button" data-delete-parcelamento="${r.id}">Excluir</button>
             </div>
         </div>
         <div class="parc-progress-wrap">
@@ -2218,6 +2222,9 @@ function bindCompromissosEdit(container) {
     container.querySelectorAll("[data-antecipar-parcelamento]").forEach(btn =>
         btn.addEventListener("click", () => requestAnteciparParcelamento(Number(btn.dataset.anteciparParcelamento)))
     );
+    container.querySelectorAll("[data-delete-parcelamento]").forEach(btn =>
+        btn.addEventListener("click", () => requestDeleteParcelamento(Number(btn.dataset.deleteParcelamento)))
+    );
 }
 
 function requestCancelarRecorrencia(id) {
@@ -2258,6 +2265,21 @@ async function requestAnteciparParcelamento(id) {
         });
         toast("Parcelamento antecipado.");
         await Promise.all([loadCompromissos(), loadProjecoes()]);
+    };
+    byId("confirm-dialog")?.showModal();
+}
+
+function requestDeleteParcelamento(id) {
+    const rec = state.parcelamentos.find(item => item.id === id);
+    if (!rec) return;
+
+    setText("confirm-title", "Excluir parcelamento?");
+    setText("confirm-message", `O parcelamento "${rec.descricao}" e os lancamentos gerados por ele serao excluidos. Esta acao nao pode ser desfeita.`);
+    setText("confirm-action", "Excluir parcelamento");
+    state.pendingConfirmation = async () => {
+        await apiFetch(`${API.recorrencias}/${id}`, { method: "DELETE" });
+        toast("Parcelamento excluido.");
+        await Promise.all([loadCompromissos(), loadProjecoes(), loadMonthData()]);
     };
     byId("confirm-dialog")?.showModal();
 }

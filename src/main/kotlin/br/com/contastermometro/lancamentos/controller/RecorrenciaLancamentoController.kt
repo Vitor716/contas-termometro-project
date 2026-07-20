@@ -66,4 +66,10 @@ class RecorrenciaLancamentoController(
         @Valid @RequestBody request: AnteciparParcelamentoRequest
     ): ResponseEntity<RecorrenciaResponse> =
         ResponseEntity.ok(recorrenciaService.antecipar(id, request))
+
+    @DeleteMapping("/{id}")
+    fun remover(@PathVariable id: Long): ResponseEntity<Void> {
+        recorrenciaService.remover(id)
+        return ResponseEntity.noContent().build()
+    }
 }

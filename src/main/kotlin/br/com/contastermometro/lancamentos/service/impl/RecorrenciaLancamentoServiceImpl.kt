@@ -124,4 +124,13 @@ class RecorrenciaLancamentoServiceImpl (
 
         return recorrenciaRepository.save(rec).toResponse()
     }
+    @Transactional
+    override fun remover(id: Long) {
+        val rec = recorrenciaRepository.findById(id)
+            .orElseThrow { NoSuchElementException("Recorrencia $id nao encontrada") }
+        val recorrenciaId = rec.id ?: id
+
+        lancamentoRepository.deleteByRecorrenciaIdIn(listOf(recorrenciaId))
+        recorrenciaRepository.delete(rec)
+    }
 }

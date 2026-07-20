@@ -13,6 +13,12 @@ interface LancamentoRepository : JpaRepository<Lancamento, Long> {
         status: StatusLancamento = StatusLancamento.ATIVO,
     ): List<Lancamento>
 
+    fun findAllByMesReferenciaBetweenAndStatusOrderByMesReferenciaAscDataLancamentoAscIdAsc(
+        mesInicio: String,
+        mesFim: String,
+        status: StatusLancamento = StatusLancamento.ATIVO,
+    ): List<Lancamento>
+
     fun findByIdLote(idLote: String): List<Lancamento>
 
     @Modifying

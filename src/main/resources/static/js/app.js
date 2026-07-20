@@ -616,6 +616,7 @@ function changeMonth(offset) {
 function updateMonthLabels() {
     const date = monthToDate(state.month);
     setText("dashboard-month-name", monthFormatter.format(date));
+    updateDataExportPeriod();
 }
 
 /* ── Load Month ────────────────────────────────────────────── */
@@ -1478,9 +1479,12 @@ function requestImportDeletion(idLote) {
 /* Backup */
 function bindBackups() {
     byId("backup-export-form")?.addEventListener("submit", exportBackup);
+    byId("data-export-form")?.addEventListener("submit", exportLancamentosCsv);
+    byId("data-export-scope")?.addEventListener("change", updateDataExportPeriod);
     byId("backup-restore-form")?.addEventListener("submit", requestBackupRestore);
     byId("backup-file")?.addEventListener("change", event => selectBackupFile(event.target.files[0]));
     byId("backup-refresh")?.addEventListener("click", loadBackupInfo);
+    updateDataExportPeriod();
 }
 
 async function loadBackupInfo() {
@@ -1548,6 +1552,29 @@ async function exportBackup(event) {
             button.innerHTML = original;
         }
     }
+}
+
+async function exportLancamentosCsv(event) {
+    event.preventDefault();
+    const escopo = byId("data-export-scope")?.value || "MES";
+    const params = new URLSearchParams({ mes: state.month, escopo });
+    window.location.assign(`${API.entries}/exportar?${params.toString()}`);
+}
+
+function updateDataExportPeriod() {
+    const el = byId("data-export-period");
+    if (!el) return;
+
+    const monthsByScope = {
+        MES: 1,
+        TRES_MESES: 3,
+        SEIS_MESES: 6,
+        UM_ANO: 12,
+    };
+    const escopo = byId("data-export-scope")?.value || "MES";
+    const quantidadeMeses = monthsByScope[escopo] || 1;
+    const inicio = addMonths(state.month, -(quantidadeMeses - 1));
+    el.textContent = `${formatYearMonth(inicio)} ate ${formatYearMonth(state.month)}`;
 }
 
 function selectBackupFile(file) {

@@ -541,6 +541,35 @@
                         </form>
                     </section>
 
+                    <section class="panel backup-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Exportar dados CSV</h2>
+                                <small>Gera uma planilha aberta dos lancamentos para analise externa.</small>
+                            </div>
+                        </div>
+                        <form id="data-export-form" class="backup-form">
+                            <label class="field">
+                                <span>Escopo da extracao</span>
+                                <select id="data-export-scope">
+                                    <option value="MES">Mes selecionado</option>
+                                    <option value="TRES_MESES">Ultimos 3 meses</option>
+                                    <option value="SEIS_MESES">Ultimos 6 meses</option>
+                                    <option value="UM_ANO">Ultimo ano</option>
+                                </select>
+                                <small class="field-hint">Usa o mes de referencia escolhido no topo como mes final do periodo.</small>
+                            </label>
+                            <div class="data-export-summary">
+                                <span>Periodo</span>
+                                <strong id="data-export-period">-</strong>
+                            </div>
+                            <button id="data-export-button" class="secondary-button full-width" type="submit">
+                                <svg aria-hidden="true"><use href="#icon-download"></use></svg>
+                                Baixar CSV estruturado
+                            </button>
+                        </form>
+                    </section>
+
                     <section class="panel backup-panel restore-panel">
                         <div class="panel-heading">
                             <div>

@@ -3,10 +3,16 @@ package br.com.contastermometro.lancamentos.controller
 import br.com.contastermometro.lancamentos.dto.LancamentoRequest
 import br.com.contastermometro.lancamentos.dto.LancamentoResponse
 import br.com.contastermometro.lancamentos.dto.RemoverLancamentosRequest
+import br.com.contastermometro.lancamentos.exportacao.EscopoExportacaoLancamentos
+import br.com.contastermometro.lancamentos.exportacao.LancamentosExportacaoService
 import br.com.contastermometro.lancamentos.service.LancamentosService
 import jakarta.validation.Valid
+import org.springframework.core.io.ByteArrayResource
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.ContentDisposition
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.YearMonth
@@ -14,7 +20,8 @@ import java.time.YearMonth
 @RestController
 @RequestMapping("/api/lancamentos")
 class LancamentosController(
-    private val lancamentosService: LancamentosService
+    private val lancamentosService: LancamentosService,
+    private val exportacaoService: LancamentosExportacaoService,
 ) {
 
     @PostMapping
@@ -34,6 +41,22 @@ class LancamentosController(
         @RequestParam("mes") mesRaw: YearMonth
     ): ResponseEntity<List<LancamentoResponse>> {
         return ResponseEntity.ok(lancamentosService.listarPorMes(mesRaw))
+    }
+
+    @GetMapping("/exportar", produces = ["text/csv"])
+    fun exportarCsv(
+        @DateTimeFormat(pattern = "yyyy-MM")
+        @RequestParam("mes") mesRaw: YearMonth,
+        @RequestParam("escopo", defaultValue = "MES") escopo: EscopoExportacaoLancamentos,
+    ): ResponseEntity<ByteArrayResource> {
+        val arquivo = exportacaoService.exportarCsv(mesRaw, escopo)
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.attachment().filename(arquivo.nomeArquivo).build().toString()
+            )
+            .body(ByteArrayResource(arquivo.conteudo))
     }
 
     @GetMapping("/lotes/{idLote}")

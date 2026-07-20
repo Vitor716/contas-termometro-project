@@ -689,9 +689,6 @@ function renderDashboard() {
     setText("thermo-invested",    money(s.totalInvestido));
     setText("thermo-goal",        money(metaValorReais));
     setText("thermo-total-out",   money(s.saidaTotal));
-    setText("metric-daily-remaining", money(s.gastoDiarioRestante));
-    setText("daily-spent",    money(s.totalGastoDiario));
-    setText("daily-expected", money(s.gastoDiarioEsperadoAtual));
 
     // Balance caption
     const balance = number(s.saldoMes);
@@ -700,6 +697,9 @@ function renderDashboard() {
     // Temperature gauge
     const performance = normalizeRate(s.performanceContraMeta);
     renderTemperature(performance, number(s.somaEntradas) > 0);
+    renderDailyBudget(s);
+    renderRecentEntries();
+    return;
 
     // Daily progress bar
     const spent    = Math.max(0, number(s.totalGastoDiario));
@@ -737,6 +737,148 @@ function renderDashboard() {
 }
 
 /* ── Temperature Gauge (novo design) ──────────────────────── */
+function renderDailyBudget(summary) {
+    const daily = calculateDailyBudget(summary);
+    const spent = Math.max(0, daily.spent);
+    const expected = Math.max(0, daily.expectedToDate);
+    const ratio = expected > 0 ? spent / expected : 0;
+
+    setText("metric-daily-remaining", money(daily.monthlyBudget));
+    setText("daily-budget-caption", `${money(daily.remainingBudget)} ainda disponivel para gastos variaveis reais`);
+    setText("daily-base-limit", money(daily.baseDailyLimit));
+    setText("daily-adjusted-limit", money(daily.adjustedDailyLimit));
+    setText("daily-spent", money(spent));
+    setText("daily-expected", money(expected));
+    setText("daily-days-left", String(daily.remainingDays));
+    setText("daily-weekends-left", String(daily.remainingWeekends));
+    setText("daily-weekend-limit", money(daily.weekendLimit));
+
+    const barFill = byId("daily-progress");
+    if (barFill) {
+        barFill.style.width = `${Math.min(ratio * 100, 100)}%`;
+        barFill.style.background = ratio > 1 ? "var(--red)" : ratio > 0.8 ? "var(--amber)" : "var(--green)";
+    }
+
+    setText("daily-progress-label", daily.monthlyBudget <= 0
+        ? "Defina entradas e saidas fixas para calcular o orcamento variavel"
+        : expected <= 0
+            ? "Aguardando gastos reais registrados"
+            : ratio <= 1
+                ? `${percent(ratio)} do ritmo esperado utilizado`
+                : `${percent(ratio - 1)} acima do ritmo esperado`
+    );
+
+    const healthPill = byId("daily-health-pill");
+    if (healthPill) {
+        healthPill.className = `status-pill ${daily.accelerated ? "danger" : ratio > 0.85 ? "warning" : "good"}`;
+        healthPill.textContent = daily.accelerated ? "Rapido demais" : ratio > 0.85 ? "Atencao" : "No ritmo";
+    }
+
+    const deltaEl = byId("daily-delta");
+    if (deltaEl) {
+        if (daily.monthlyBudget > 0) {
+            const delta = expected - spent;
+            deltaEl.hidden = false;
+            deltaEl.className = `daily-delta ${daily.accelerated ? "behind" : "ahead"}`;
+            deltaEl.textContent = daily.accelerated
+                ? `Orcamento sendo consumido rapido demais. Novo limite: ${money(daily.adjustedDailyLimit)} por dia e ${money(daily.weekendLimit)} por fim de semana para fechar o mes.`
+                : delta >= 0
+                    ? `${money(delta)} abaixo do ritmo planejado. Mantenha ate ${money(daily.adjustedDailyLimit)} por dia.`
+                    : `${money(Math.abs(delta))} acima do planejado. Ajuste para ${money(daily.adjustedDailyLimit)} por dia.`;
+        } else {
+            deltaEl.hidden = true;
+        }
+    }
+}
+
+function calculateDailyBudget(summary) {
+    const reference = referenceDateForMonth(state.month);
+    const totalDays = daysInMonth(state.month);
+    const dayOfMonth = reference.getDate();
+    const remainingDays = Math.max(totalDays - dayOfMonth + 1, 1);
+    const metaValue = number(summary.somaEntradas) * normalizeRate(summary.metaInvestimento);
+    const monthlyBudget = Math.max(0, number(summary.somaEntradas) - number(summary.somaSaidasFixas) - metaValue);
+    const spent = Math.max(0, number(summary.totalGastoDiario));
+    const expectedToDate = Math.max(0, number(summary.gastoDiarioEsperadoAtual));
+    const remainingBudget = Math.max(0, monthlyBudget - spent);
+    const baseDailyLimit = totalDays > 0 ? monthlyBudget / totalDays : 0;
+    const adjustedDailyLimit = remainingBudget / remainingDays;
+    const weekendInfo = remainingWeekendInfo(reference, state.month);
+    const averageWeekendDays = weekendInfo.groups > 0 ? weekendInfo.days / weekendInfo.groups : 0;
+    const weekendLimit = weekendInfo.groups > 0
+        ? Math.min(remainingBudget, adjustedDailyLimit * averageWeekendDays)
+        : 0;
+    const recentAverage = recentDailySpendAverage(reference, 3);
+    const accelerated = monthlyBudget > 0 && (
+        spent > expectedToDate * 1.05 ||
+        recentAverage > baseDailyLimit * 1.1
+    );
+
+    return {
+        monthlyBudget,
+        spent,
+        expectedToDate,
+        remainingBudget,
+        baseDailyLimit,
+        adjustedDailyLimit,
+        remainingDays,
+        remainingWeekends: weekendInfo.groups,
+        weekendLimit,
+        accelerated
+    };
+}
+
+function referenceDateForMonth(month) {
+    const [year, value] = month.split("-").map(Number);
+    if (month === currentYearMonth()) {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    return new Date(year, value, 0);
+}
+
+function daysInMonth(month) {
+    const [year, value] = month.split("-").map(Number);
+    return new Date(year, value, 0).getDate();
+}
+
+function remainingWeekendInfo(startDate, month) {
+    const [year, value] = month.split("-").map(Number);
+    const end = new Date(year, value, 0);
+    let days = 0;
+    let groups = 0;
+    let inWeekend = false;
+
+    for (let date = new Date(startDate); date <= end; date.setDate(date.getDate() + 1)) {
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        if (isWeekend) {
+            days += 1;
+            if (!inWeekend) groups += 1;
+        }
+        inWeekend = isWeekend;
+    }
+
+    return { days, groups };
+}
+
+function recentDailySpendAverage(referenceDate, windowDays) {
+    const start = new Date(referenceDate);
+    start.setDate(start.getDate() - windowDays + 1);
+    const total = state.entries
+        .filter(entry => entry.tipo === "GASTO_DIARIO")
+        .filter(entry => {
+            const date = localDate(entry.data);
+            return date >= start && date <= referenceDate;
+        })
+        .reduce((sum, entry) => sum + Math.max(0, number(entry.valor)), 0);
+    return total / Math.max(windowDays, 1);
+}
+
+function localDate(value) {
+    const [year, month, day] = String(value).split("-").map(Number);
+    return new Date(year, month - 1, day);
+}
+
 function renderTemperature(performance, hasIncome) {
     const statusEl   = byId("temperature-status");
     if (!statusEl) return;

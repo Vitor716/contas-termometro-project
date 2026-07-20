@@ -408,10 +408,11 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .status-pill.warning { background: var(--amber-light); color: var(--amber); }
 .status-pill.danger  { background: var(--red-light); color: var(--red); }
 
-.daily-available { margin: 28px 0 18px; }
-.daily-available span, .daily-available strong { display: block; }
+.daily-available { margin: 22px 0 18px; }
+.daily-available span, .daily-available strong, .daily-available small { display: block; }
 .daily-available span { color: var(--ink-soft); font-size: 11px; }
 .daily-available strong { margin-top: 5px; font: 800 29px "Manrope", sans-serif; letter-spacing: -.045em; }
+.daily-available small { margin-top: 5px; color: var(--ink-soft); font-size: 10px; line-height: 1.45; }
 
 .progress-bar { height: 8px; overflow: hidden; border-radius: 99px; background: var(--surface-muted); }
 .progress-bar span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--amber); transition: width .5s ease; }
@@ -439,14 +440,73 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .daily-comparison .comp-label.ideal-label { color: var(--green); }
 .daily-comparison strong { display: block; margin-top: 5px; font: 700 13px "Manrope", sans-serif; }
 
+.daily-detail-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.daily-detail-grid div {
+    min-width: 0;
+    padding: 10px 11px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255,255,255,.018);
+}
+.daily-detail-grid span {
+    display: block;
+    color: var(--ink-soft);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.daily-detail-grid strong {
+    display: block;
+    margin-top: 5px;
+    overflow: hidden;
+    color: var(--ink);
+    font: 700 13px "Manrope", sans-serif;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.weekend-limit {
+    margin-top: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid rgba(79,156,249,.22);
+    border-radius: 12px;
+    background: var(--blue-light);
+}
+.weekend-limit span {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+.weekend-limit svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.weekend-limit strong {
+    flex: 0 0 auto;
+    color: var(--ink);
+    font: 800 15px "Manrope", sans-serif;
+    white-space: nowrap;
+}
+
 /* Delta indicator */
 .daily-delta {
     margin-top: 12px;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    text-align: center;
+    line-height: 1.45;
     letter-spacing: .01em;
     transition: .3s ease;
 }
@@ -455,8 +515,8 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
     color: var(--green);
 }
 .daily-delta.behind {
-    background: var(--amber-light);
-    color: var(--amber);
+    background: var(--red-light);
+    color: var(--red);
 }
 
 /* ── Recent Panel ──────────────────────────────────────────── */
@@ -1322,6 +1382,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(4px); }
     .recurring-options { grid-template-columns: 1fr; }
     .daily-comparison { grid-template-columns: 1fr; gap: 12px; }
     .daily-comparison div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+    .daily-detail-grid { grid-template-columns: 1fr; }
+    .weekend-limit { align-items: flex-start; flex-direction: column; }
     .projection-breakdown, .consultor-metrics { grid-template-columns: 1fr; }
     .critical-months div { align-items: flex-start; flex-direction: column; }
     .critical-months span { text-align: left; }

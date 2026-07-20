@@ -192,13 +192,17 @@
                     <!-- ── Controle Diário ── -->
                     <section class="panel daily-panel">
                         <div class="panel-heading">
-                            <h2>Controle Diário</h2>
-                            <span class="round-icon"><svg aria-hidden="true"><use href="#icon-wallet"></use></svg></span>
+                            <div>
+                                <p class="panel-kicker">Gastos variaveis</p>
+                                <h2>Limites do mes</h2>
+                            </div>
+                            <span id="daily-health-pill" class="status-pill good">No ritmo</span>
                         </div>
 
                         <div class="daily-available">
-                            <span>Disponível para hoje e amanhã</span>
+                            <span>Orcamento mensal disponivel</span>
                             <strong id="metric-daily-remaining">R$ 0,00</strong>
+                            <small id="daily-budget-caption">Receita - fixos - meta de investimento</small>
                         </div>
 
                         <div class="progress-row">
@@ -210,18 +214,42 @@
                         <div class="daily-comparison">
                             <div>
                                 <span class="comp-label">
-                                    <svg aria-hidden="true"><use href="#icon-wallet"></use></svg>
-                                    Gasto atual
+                                    <svg aria-hidden="true"><use href="#icon-target"></use></svg>
+                                    Limite diario base
                                 </span>
-                                <strong id="daily-spent">R$ 0,00</strong>
+                                <strong id="daily-base-limit">R$ 0,00</strong>
                             </div>
                             <div>
                                 <span class="comp-label ideal-label">
                                     <svg aria-hidden="true"><use href="#icon-chart"></use></svg>
-                                    Ritmo ideal agora
+                                    Limite a partir de hoje
                                 </span>
+                                <strong id="daily-adjusted-limit">R$ 0,00</strong>
+                            </div>
+                        </div>
+
+                        <div class="daily-detail-grid">
+                            <div>
+                                <span>Gasto registrado</span>
+                                <strong id="daily-spent">R$ 0,00</strong>
+                            </div>
+                            <div>
+                                <span>Planejado ate hoje</span>
                                 <strong id="daily-expected">R$ 0,00</strong>
                             </div>
+                            <div>
+                                <span>Dias restantes</span>
+                                <strong id="daily-days-left">0</strong>
+                            </div>
+                            <div>
+                                <span>Fins de semana restantes</span>
+                                <strong id="daily-weekends-left">0</strong>
+                            </div>
+                        </div>
+
+                        <div class="weekend-limit">
+                            <span><svg aria-hidden="true"><use href="#icon-calendar"></use></svg> Limite sugerido por fim de semana</span>
+                            <strong id="daily-weekend-limit">R$ 0,00</strong>
                         </div>
 
                         <!-- Dynamic delta message -->
